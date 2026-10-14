@@ -6,7 +6,7 @@ import {
   initializeAuth,
   type Auth,
 } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, type Firestore } from 'firebase/firestore';
 
 /**
  * Firebase JS SDK (not React Native Firebase) so everything works in Expo Go.
@@ -56,5 +56,20 @@ function createAuth(): Auth {
 }
 
 export const auth: Auth = createAuth();
-export const db: Firestore = getFirestore(app);
+
+function createFirestore(): Firestore {
+  try {
+    // React Native's WebChannel streaming transport can drop the 'Listen' stream
+    // and log noisy "transport errored" warnings before silently reconnecting.
+    // Auto-detected long-polling falls back to a more reliable transport.
+    return initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+    });
+  } catch {
+    // initializeFirestore throws if invoked twice (e.g. Fast Refresh).
+    return getFirestore(app);
+  }
+}
+
+export const db: Firestore = createFirestore();
 export { app };

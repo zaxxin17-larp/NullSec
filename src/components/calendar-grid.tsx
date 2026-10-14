@@ -1,7 +1,14 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import type { AttendanceStatus } from '@/services/attendance';
 import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 import { buildMonthGrid, WEEKDAY_LABELS, type DateKey } from '@/utils/date';
+
+const STATUS_DOT: Record<AttendanceStatus, string> = {
+  present: colors.present,
+  absent: colors.absent,
+  excused: colors.excused,
+};
 
 type CalendarGridProps = {
   year: number;
@@ -9,6 +16,7 @@ type CalendarGridProps = {
   selected: DateKey | null;
   today: DateKey;
   eventDates: ReadonlySet<DateKey>;
+  myStatusByDate: Record<DateKey, AttendanceStatus | undefined>;
   onSelectDay: (key: DateKey) => void;
 };
 
@@ -18,6 +26,7 @@ export function CalendarGrid({
   selected,
   today,
   eventDates,
+  myStatusByDate,
   onSelectDay,
 }: CalendarGridProps) {
   const weeks = buildMonthGrid(year, month0);
@@ -37,7 +46,10 @@ export function CalendarGrid({
           {week.map((cell) => {
             const isSelected = selected === cell.key;
             const isToday = today === cell.key;
+            const status = myStatusByDate[cell.key];
             const hasEvents = eventDates.has(cell.key);
+            const hasDot = Boolean(status) || hasEvents;
+            const dotColor = status ? STATUS_DOT[status] : colors.accent;
 
             return (
               <Pressable
@@ -65,9 +77,13 @@ export function CalendarGrid({
                   >
                     {String(cell.day).padStart(2, '0')}
                   </Text>
-                  {hasEvents ? (
+                  {hasDot ? (
                     <View
-                      style={[styles.dot, isSelected && styles.dotSelected]}
+                      style={[
+                        styles.dot,
+                        { backgroundColor: dotColor },
+                        isSelected && styles.dotSelected,
+                      ]}
                     />
                   ) : null}
                 </View>

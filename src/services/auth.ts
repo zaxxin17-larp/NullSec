@@ -36,6 +36,18 @@ export async function signUp(
     createdAt: serverTimestamp(),
   });
 
+  // Best-effort public directory entry (name only). Ignored if rules are not yet
+  // deployed so sign-up never fails because of it.
+  try {
+    await setDoc(doc(db, 'members', user.uid), {
+      uid: user.uid,
+      username,
+      createdAt: serverTimestamp(),
+    });
+  } catch {
+    // Directory entry will be created lazily on next launch.
+  }
+
   return user;
 }
 

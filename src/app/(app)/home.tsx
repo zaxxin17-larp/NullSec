@@ -1,18 +1,32 @@
 import Constants from 'expo-constants';
 import { Redirect, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { ReleaseNotification } from '@/components/release-notification';
 import { ScreenContainer } from '@/components/screen-container';
+import { AttendanceToggle } from '@/components/ui/attendance-toggle';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader } from '@/components/ui/loader';
+import { StatusPill } from '@/components/ui/status-pill';
 import { useAuth } from '@/context/auth-context';
+import {
+  setMyAttendance,
+  subscribeToAttendanceRange,
+  type AttendanceDay,
+  type AttendanceStatus,
+} from '@/services/attendance';
 import { subscribeToEvents, type CalendarEvent } from '@/services/events';
+import { ensureMemberProfile } from '@/services/members';
 import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 import { checkForUpdates } from '@/updates';
-import { todayKey, formatFullDate, formatDateLabel } from '@/utils/date';
+import {
+  formatDateLabel,
+  formatFullDate,
+  makeDateKey,
+  todayKey,
+} from '@/utils/date';
 
 const TWO_COLUMN_BREAKPOINT = 900;
 
@@ -31,10 +45,29 @@ export default function HomeScreen() {
 
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [attendanceDays, setAttendanceDays] = useState<AttendanceDay[]>([]);
+  const [savingMark, setSavingMark] = useState(false);
+  const [markError, setMarkError] = useState<string | null>(null);
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   const uid = user?.uid;
+  const name = user?.displayName?.trim() || user?.email || 'classmate';
+
+  const today = todayKey();
+  const monthStart = useMemo(() => {
+    const now = new Date();
+    return makeDateKey(now.getFullYear(), now.getMonth(), 1);
+  }, []);
+  const monthEnd = useMemo(() => {
+    const now = new Date();
+    return makeDateKey(now.getFullYear(), now.getMonth() + 1, 0);
+  }, []);
+
+  useEffect(() => {
+    if (!uid) return;
+    ensureMemberProfile(uid, name);
+  }, [uid, name]);
 
   useEffect(() => {
     if (!uid) return;
@@ -49,12 +82,59 @@ export default function HomeScreen() {
     return unsubscribe;
   }, [uid]);
 
+  useEffect(() => {
+    if (!uid) return;
+    const unsubscribe = subscribeToAttendanceRange(
+      monthStart,
+      monthEnd,
+      setAttendanceDays,
+      () => {},
+    );
+    return unsubscribe;
+  }, [uid, monthStart, monthEnd]);
+
+  const todayStatus = useMemo(() => {
+    if (!uid) return undefined;
+    return attendanceDays.find((day) => day.date === today)?.marks[uid];
+  }, [attendanceDays, uid, today]);
+
+  const summary = useMemo(() => {
+    let present = 0;
+    let absent = 0;
+    let excused = 0;
+    if (uid) {
+      for (const day of attendanceDays) {
+        const status = day.marks[uid];
+        if (status === 'present') present++;
+        else if (status === 'absent') absent++;
+        else if (status === 'excused') excused++;
+      }
+    }
+    const total = present + absent + excused;
+    const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+    return { present, absent, excused, total, rate };
+  }, [attendanceDays, uid]);
+
+  const handleMarkToday = useCallback(
+    async (status: AttendanceStatus) => {
+      if (!uid || savingMark) return;
+      setSavingMark(true);
+      setMarkError(null);
+      try {
+        await setMyAttendance(uid, today, status);
+      } catch {
+        setMarkError('Could not save your attendance. Try again.');
+      } finally {
+        setSavingMark(false);
+      }
+    },
+    [uid, savingMark, today],
+  );
+
   if (!user) {
     return <Redirect href="/(auth)/login" />;
   }
 
-  const name = user.displayName?.trim() || user.email || 'classmate';
-  const today = todayKey();
   const upcoming = events
     .filter((event) => event.date >= today)
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -90,25 +170,52 @@ export default function HomeScreen() {
       <View style={[styles.grid, twoColumn && styles.gridWide]}>
         <Card
           title="Today"
-          subtitle="Class attendance"
+          subtitle="Your attendance"
           style={[styles.cell, twoColumn && styles.cellHalf]}
+          headerAccessory={
+            todayStatus ? <StatusPill status={todayStatus} size="sm" /> : null
+          }
         >
           <Text style={styles.muted}>
-            No attendance has been recorded for today yet.
+            {todayStatus
+              ? `You are marked ${todayStatus} for today.`
+              : 'You have not marked attendance for today yet.'}
           </Text>
-          <View style={styles.actions}>
-            <Button
-              label="Take attendance"
-              onPress={() => router.push('/(app)/calendar')}
-              testID="home-take-attendance"
-            />
-            <Button
-              label="Open calendar"
-              variant="secondary"
-              onPress={() => router.push('/(app)/calendar')}
-              testID="home-open-calendar"
+          <View style={styles.toggleWrap}>
+            <AttendanceToggle
+              value={todayStatus}
+              onChange={handleMarkToday}
+              disabled={savingMark}
+              size="sm"
+              testID="home-mark"
             />
           </View>
+          {markError ? <Text style={styles.error}>{markError}</Text> : null}
+          <Button
+            label="Open calendar"
+            variant="secondary"
+            onPress={() => router.push('/(app)/calendar')}
+            style={styles.cardAction}
+            testID="home-open-calendar"
+          />
+        </Card>
+
+        <Card
+          title="This month"
+          subtitle="Your attendance record"
+          style={[styles.cell, twoColumn && styles.cellHalf]}
+          headerAccessory={<Text style={styles.rate}>{summary.rate}%</Text>}
+        >
+          {summary.total === 0 ? (
+            <Text style={styles.muted}>No attendance marked yet this month.</Text>
+          ) : (
+            <View style={styles.stats}>
+              <Stat label="Present" value={summary.present} color={colors.present} />
+              <Stat label="Absent" value={summary.absent} color={colors.absent} />
+              <Stat label="Excused" value={summary.excused} color={colors.excused} />
+              <Stat label="Marked" value={summary.total} color={colors.textSecondary} />
+            </View>
+          )}
         </Card>
 
         <Card
@@ -187,12 +294,29 @@ export default function HomeScreen() {
             onPress={handleCheckUpdates}
             loading={checkingUpdate}
             disabled={checkingUpdate}
-            style={styles.updateButton}
+            style={styles.cardAction}
             testID="home-check-updates"
           />
         </Card>
       </View>
     </ScreenContainer>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color: string;
+}) {
+  return (
+    <View style={styles.stat}>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
   );
 }
 
@@ -221,10 +345,9 @@ const styles = StyleSheet.create({
   },
   greeting: {
     color: colors.text,
-    fontFamily: fonts.sans,
+    fontFamily: fonts.mono,
     fontSize: fontSizes.xxl,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+    letterSpacing: 0.5,
   },
   grid: {
     gap: spacing.lg,
@@ -242,10 +365,11 @@ const styles = StyleSheet.create({
     minWidth: 320,
     maxWidth: '49%',
   },
-  actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+  toggleWrap: {
+    marginTop: spacing.lg,
+  },
+  cardAction: {
+    alignSelf: 'flex-start',
     marginTop: spacing.lg,
   },
   muted: {
@@ -254,11 +378,40 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     lineHeight: 20,
   },
+  error: {
+    color: colors.danger,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.xs,
+    marginTop: spacing.sm,
+  },
+  rate: {
+    color: colors.accentStrong,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.sm,
+  },
   count: {
     color: colors.accentStrong,
     fontFamily: fonts.mono,
     fontSize: fontSizes.xs,
-    fontWeight: '700',
+  },
+  stats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xl,
+  },
+  stat: {
+    minWidth: 60,
+  },
+  statValue: {
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xl,
+  },
+  statLabel: {
+    color: colors.textMuted,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
+    letterSpacing: 0.5,
+    marginTop: spacing.xs,
   },
   list: {
     gap: spacing.sm,
@@ -278,7 +431,6 @@ const styles = StyleSheet.create({
     color: colors.accentStrong,
     fontFamily: fonts.mono,
     fontSize: fontSizes.xs,
-    fontWeight: '700',
   },
   eventInfo: {
     flex: 1,
@@ -287,7 +439,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.sans,
     fontSize: fontSizes.sm,
-    fontWeight: '600',
   },
   eventMeta: {
     color: colors.textMuted,
@@ -296,9 +447,8 @@ const styles = StyleSheet.create({
   },
   profileName: {
     color: colors.text,
-    fontFamily: fonts.sans,
+    fontFamily: fonts.mono,
     fontSize: fontSizes.lg,
-    fontWeight: '700',
   },
   metaList: {
     marginTop: spacing.md,
@@ -350,9 +500,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: fontSizes.sm,
     marginTop: spacing.md,
-  },
-  updateButton: {
-    alignSelf: 'flex-start',
-    marginTop: spacing.lg,
   },
 });

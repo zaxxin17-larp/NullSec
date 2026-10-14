@@ -1,25 +1,35 @@
 import { Link, Redirect } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CalendarGrid } from '@/components/calendar-grid';
 import { EventModal } from '@/components/event-modal';
 import { ScreenContainer } from '@/components/screen-container';
+import { AttendanceToggle } from '@/components/ui/attendance-toggle';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader } from '@/components/ui/loader';
+import { StatusPill } from '@/components/ui/status-pill';
 import { useAuth } from '@/context/auth-context';
+import {
+  setMyAttendance,
+  subscribeToAttendanceRange,
+  type AttendanceStatus,
+  type DayMarks,
+} from '@/services/attendance';
 import {
   addEvent,
   deleteEvent,
   subscribeToEvents,
   type CalendarEvent,
 } from '@/services/events';
+import { subscribeToMembers, type MemberProfile } from '@/services/members';
 import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 import {
   addMonths,
   formatDateLabel,
   formatMonthLabel,
+  makeDateKey,
   parseDateKey,
   todayKey,
   type DateKey,
@@ -28,10 +38,10 @@ import {
 function describeError(error: Error): string {
   const code = (error as { code?: string }).code;
   if (code === 'permission-denied') {
-    return 'You do not have permission to sync attendance. Ask an admin to deploy the updated rules.';
+    return 'You do not have permission to sync. Ask an admin to deploy the updated rules.';
   }
   if (code === 'unavailable') return 'Network unavailable. Changes will retry.';
-  return 'Could not sync attendance right now.';
+  return 'Could not sync right now.';
 }
 
 export default function CalendarScreen() {
@@ -44,21 +54,50 @@ export default function CalendarScreen() {
 
   const [cursor, setCursor] = useState(initial);
   const [selected, setSelected] = useState<DateKey>(todayKey());
+
+  const [members, setMembers] = useState<MemberProfile[]>([]);
+  const [monthMarks, setMonthMarks] = useState<Record<DateKey, DayMarks>>({});
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [savingMark, setSavingMark] = useState(false);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   const uid = user?.uid;
+
+  useEffect(() => {
+    const unsubscribe = subscribeToMembers(
+      setMembers,
+      (error) => setSyncError(describeError(error)),
+    );
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (!uid) return;
     const unsubscribe = subscribeToEvents(
       uid,
-      (next) => {
-        setEvents(next);
+      setEvents,
+      (error) => setSyncError(describeError(error)),
+    );
+    return unsubscribe;
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+    const start = makeDateKey(cursor.year, cursor.month0, 1);
+    const end = makeDateKey(cursor.year, cursor.month0 + 1, 0);
+    const unsubscribe = subscribeToAttendanceRange(
+      start,
+      end,
+      (days) => {
+        const next: Record<DateKey, DayMarks> = {};
+        for (const day of days) next[day.date] = day.marks;
+        setMonthMarks(next);
         setSyncError(null);
         setLoading(false);
       },
@@ -68,38 +107,75 @@ export default function CalendarScreen() {
       },
     );
     return unsubscribe;
-  }, [uid]);
+  }, [uid, cursor.year, cursor.month0]);
 
   const eventDates = useMemo(
     () => new Set(events.map((event) => event.date)),
     [events],
   );
 
+  const selectedMarks = monthMarks[selected] ?? {};
+  const myStatus = uid ? selectedMarks[uid] : undefined;
+
+  const myStatusByDate = useMemo(() => {
+    const map: Record<DateKey, AttendanceStatus | undefined> = {};
+    if (!uid) return map;
+    for (const [date, marks] of Object.entries(monthMarks)) {
+      map[date] = marks[uid];
+    }
+    return map;
+  }, [monthMarks, uid]);
+
+  const roster = useMemo(() => {
+    const list = [...members];
+    if (uid && !list.some((member) => member.uid === uid)) {
+      list.push({ uid, username: 'You', createdAt: null });
+    }
+    return list;
+  }, [members, uid]);
+
   const selectedEvents = useMemo(
     () => events.filter((event) => event.date === selected),
     [events, selected],
   );
 
-  if (!user) {
-    return <Redirect href="/(auth)/login" />;
-  }
+  const presentCount = Object.values(selectedMarks).filter(
+    (status) => status === 'present',
+  ).length;
 
-  function changeMonth(delta: number) {
+  const changeMonth = useCallback((delta: number) => {
     setCursor((prev) => addMonths(prev.year, prev.month0, delta));
-  }
+  }, []);
 
-  function goToToday() {
+  const goToToday = useCallback(() => {
     const key = todayKey();
     const { year, month0 } = parseDateKey(key);
     setCursor({ year, month0 });
     setSelected(key);
-  }
+  }, []);
 
-  function handleSelectDay(key: DateKey) {
+  const handleSelectDay = useCallback((key: DateKey) => {
     const { year, month0 } = parseDateKey(key);
     setCursor({ year, month0 });
     setSelected(key);
     setActionError(null);
+  }, []);
+
+  if (!user) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  async function handleMark(status: AttendanceStatus) {
+    if (!uid || savingMark) return;
+    setSavingMark(true);
+    setActionError(null);
+    try {
+      await setMyAttendance(uid, selected, status);
+    } catch (error) {
+      setActionError(describeError(error as Error));
+    } finally {
+      setSavingMark(false);
+    }
   }
 
   async function handleAddEvent(input: { title: string; notes: string }) {
@@ -135,7 +211,7 @@ export default function CalendarScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Attendance calendar</Text>
         <Text style={styles.subtitle}>
-          Plan sessions and track attendance day by day.
+          Mark your attendance, track the class, and plan sessions.
         </Text>
       </View>
 
@@ -171,24 +247,87 @@ export default function CalendarScreen() {
         selected={selected}
         today={todayKey()}
         eventDates={eventDates}
+        myStatusByDate={myStatusByDate}
         onSelectDay={handleSelectDay}
       />
 
+      <View style={styles.legend}>
+        <LegendItem color={colors.present} label="Present" />
+        <LegendItem color={colors.absent} label="Absent" />
+        <LegendItem color={colors.excused} label="Excused" />
+        <LegendItem color={colors.accent} label="Event" />
+      </View>
+
+      {syncError ? <Text style={styles.error}>{syncError}</Text> : null}
+      {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
+
       <Card
-        style={styles.dayPanel}
-        title={formatDateLabel(selected)}
+        style={styles.panel}
+        title="Your attendance"
+        subtitle={formatDateLabel(selected)}
         headerAccessory={
-          <Pressable onPress={goToToday} hitSlop={8} accessibilityRole="button" testID="calendar-today">
+          <Pressable
+            onPress={goToToday}
+            hitSlop={8}
+            accessibilityRole="button"
+            testID="calendar-today"
+          >
             <Text style={styles.todayLink}>Today</Text>
           </Pressable>
         }
       >
-        {syncError ? <Text style={styles.error}>{syncError}</Text> : null}
-        {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
+        <AttendanceToggle
+          value={myStatus}
+          onChange={handleMark}
+          disabled={savingMark}
+          testID="calendar-mark"
+        />
+        <Text style={styles.hint}>
+          {myStatus
+            ? 'Tap another status to change it.'
+            : 'Mark yourself for this day.'}
+        </Text>
+      </Card>
 
+      <Card
+        style={styles.panel}
+        title="Class attendance"
+        subtitle={formatDateLabel(selected)}
+        headerAccessory={<Text style={styles.count}>{presentCount} present</Text>}
+      >
         {loading ? (
           <Loader compact />
-        ) : selectedEvents.length === 0 ? (
+        ) : roster.length === 0 ? (
+          <Text style={styles.empty}>No classmates in the directory yet.</Text>
+        ) : (
+          <View style={styles.rosterList}>
+            {roster.map((member) => {
+              const status = selectedMarks[member.uid];
+              const isSelf = member.uid === uid;
+              return (
+                <View key={member.uid} style={styles.rosterRow}>
+                  <Text style={[styles.rosterName, isSelf && styles.rosterSelf]}>
+                    {member.username}
+                    {isSelf ? ' (you)' : ''}
+                  </Text>
+                  {status ? (
+                    <StatusPill status={status} size="sm" />
+                  ) : (
+                    <Text style={styles.unmarked}>—</Text>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </Card>
+
+      <Card
+        style={styles.panel}
+        title="Events"
+        subtitle={formatDateLabel(selected)}
+      >
+        {selectedEvents.length === 0 ? (
           <Text style={styles.empty}>No events for this day yet.</Text>
         ) : (
           <View style={styles.eventList}>
@@ -236,12 +375,20 @@ export default function CalendarScreen() {
   );
 }
 
+function LegendItem({ color, label }: { color: string; label: string }) {
+  return (
+    <View style={styles.legendItem}>
+      <View style={[styles.legendDot, { backgroundColor: color }]} />
+      <Text style={styles.legendLabel}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   backLink: {
     color: colors.textSecondary,
     fontFamily: fonts.sans,
     fontSize: fontSizes.sm,
-    fontWeight: '600',
     marginBottom: spacing.lg,
   },
   header: {
@@ -249,10 +396,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.xxl,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xl,
+    letterSpacing: 1,
   },
   subtitle: {
     color: colors.textSecondary,
@@ -282,24 +428,82 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   monthLabel: {
-    color: colors.text,
+    color: colors.accentStrong,
     fontFamily: fonts.mono,
     fontSize: fontSizes.md,
     letterSpacing: 2,
-    fontWeight: '600',
   },
-  dayPanel: {
-    marginTop: spacing.xl,
+  legend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.lg,
+    marginTop: spacing.md,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  legendDot: {
+    width: 7,
+    height: 7,
+    borderRadius: radii.pill,
+  },
+  legendLabel: {
+    color: colors.textMuted,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
+  },
+  panel: {
+    marginTop: spacing.lg,
   },
   todayLink: {
     color: colors.accentStrong,
-    fontFamily: fonts.sans,
+    fontFamily: fonts.mono,
     fontSize: fontSizes.sm,
-    fontWeight: '600',
+  },
+  hint: {
+    color: colors.textMuted,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.xs,
+    marginTop: spacing.md,
+  },
+  count: {
+    color: colors.present,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
   },
   empty: {
     color: colors.textMuted,
     fontFamily: fonts.sans,
+    fontSize: fontSizes.sm,
+  },
+  rosterList: {
+    gap: spacing.sm,
+  },
+  rosterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.borderDim,
+    borderRadius: radii.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  rosterName: {
+    flex: 1,
+    color: colors.text,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.sm,
+  },
+  rosterSelf: {
+    color: colors.accentStrong,
+  },
+  unmarked: {
+    color: colors.textMuted,
+    fontFamily: fonts.mono,
     fontSize: fontSizes.sm,
   },
   eventList: {
@@ -323,7 +527,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.sans,
     fontSize: fontSizes.sm,
-    fontWeight: '600',
   },
   eventNotes: {
     color: colors.textSecondary,
@@ -335,13 +538,12 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontFamily: fonts.sans,
     fontSize: fontSizes.sm,
-    fontWeight: '600',
   },
   error: {
     color: colors.danger,
     fontFamily: fonts.sans,
     fontSize: fontSizes.sm,
-    marginBottom: spacing.md,
+    marginTop: spacing.md,
   },
   addButton: {
     alignSelf: 'flex-start',

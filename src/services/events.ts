@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@/firebase';
+import { timestampToDate } from '@/utils/firestore';
 
 /**
  * Calendar events live in a per-user subcollection: users/{uid}/events/{eventId}.
@@ -30,18 +31,6 @@ export const MAX_NOTES_LENGTH = 1000;
 
 function eventsCollection(uid: string) {
   return collection(db, 'users', uid, 'events');
-}
-
-function timestampToDate(value: unknown): Date | null {
-  if (
-    value &&
-    typeof value === 'object' &&
-    'toDate' in value &&
-    typeof (value as { toDate?: unknown }).toDate === 'function'
-  ) {
-    return (value as { toDate: () => Date }).toDate();
-  }
-  return null;
 }
 
 /**
