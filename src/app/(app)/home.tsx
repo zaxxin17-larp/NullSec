@@ -1,4 +1,4 @@
-import { Redirect } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -14,6 +14,7 @@ import { checkForUpdates, type UpdatePhase } from '@/updates';
 
 export default function HomeScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const [phase, setPhase] = useState<UpdatePhase>('idle');
   const [message, setMessage] = useState('');
   const [checkingUpdates, setCheckingUpdates] = useState(false);
@@ -85,6 +86,12 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.actions}>
+        <TerminalButton
+          label="Calendar"
+          onPress={() => router.push('/(app)/calendar')}
+          style={styles.action}
+          testID="home-calendar"
+        />
         <TerminalButton
           label="Check for updates"
           variant="ghost"
