@@ -12,7 +12,7 @@ import { Loader } from '@/components/ui/loader';
 import { StatusPill } from '@/components/ui/status-pill';
 import { useAuth } from '@/context/auth-context';
 import {
-  setMyAttendance,
+  setAttendanceFor,
   subscribeToAttendanceRange,
   type AttendanceStatus,
   type DayMarks,
@@ -38,7 +38,7 @@ import {
 function describeError(error: Error): string {
   const code = (error as { code?: string }).code;
   if (code === 'permission-denied') {
-    return 'You do not have permission to sync. Ask an admin to deploy the updated rules.';
+    return 'Only an admin can edit attendance, or the rules need to be deployed.';
   }
   if (code === 'unavailable') return 'Network unavailable. Changes will retry.';
   return 'Could not sync right now.';
@@ -62,7 +62,7 @@ export default function CalendarScreen() {
   const [loading, setLoading] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [savingMark, setSavingMark] = useState(false);
+  const [savingUid, setSavingUid] = useState<string | null>(null);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -114,8 +114,12 @@ export default function CalendarScreen() {
     [events],
   );
 
+  const isAdmin = useMemo(
+    () => members.some((member) => member.uid === uid && member.role === 'admin'),
+    [members, uid],
+  );
+
   const selectedMarks = monthMarks[selected] ?? {};
-  const myStatus = uid ? selectedMarks[uid] : undefined;
 
   const myStatusByDate = useMemo(() => {
     const map: Record<DateKey, AttendanceStatus | undefined> = {};
@@ -129,7 +133,7 @@ export default function CalendarScreen() {
   const roster = useMemo(() => {
     const list = [...members];
     if (uid && !list.some((member) => member.uid === uid)) {
-      list.push({ uid, username: 'You', createdAt: null });
+      list.push({ uid, username: 'You', role: 'student', createdAt: null });
     }
     return list;
   }, [members, uid]);
@@ -165,16 +169,16 @@ export default function CalendarScreen() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  async function handleMark(status: AttendanceStatus) {
-    if (!uid || savingMark) return;
-    setSavingMark(true);
+  async function handleSetMark(targetUid: string, status: AttendanceStatus) {
+    if (!uid || savingUid) return;
+    setSavingUid(targetUid);
     setActionError(null);
     try {
-      await setMyAttendance(uid, selected, status);
+      await setAttendanceFor(targetUid, selected, status, uid);
     } catch (error) {
       setActionError(describeError(error as Error));
     } finally {
-      setSavingMark(false);
+      setSavingUid(null);
     }
   }
 
@@ -209,9 +213,14 @@ export default function CalendarScreen() {
       </Link>
 
       <View style={styles.header}>
-        <Text style={styles.title}>Attendance calendar</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Attendance calendar</Text>
+          {isAdmin ? <Text style={styles.adminBadge}>ADMIN</Text> : null}
+        </View>
         <Text style={styles.subtitle}>
-          Mark your attendance, track the class, and plan sessions.
+          {isAdmin
+            ? 'Mark each student present, absent or excused.'
+            : 'View your attendance and the class roster.'}
         </Text>
       </View>
 
@@ -263,42 +272,26 @@ export default function CalendarScreen() {
 
       <Card
         style={styles.panel}
-        title="Your attendance"
-        subtitle={formatDateLabel(selected)}
-        headerAccessory={
-          <Pressable
-            onPress={goToToday}
-            hitSlop={8}
-            accessibilityRole="button"
-            testID="calendar-today"
-          >
-            <Text style={styles.todayLink}>Today</Text>
-          </Pressable>
-        }
-      >
-        <AttendanceToggle
-          value={myStatus}
-          onChange={handleMark}
-          disabled={savingMark}
-          testID="calendar-mark"
-        />
-        <Text style={styles.hint}>
-          {myStatus
-            ? 'Tap another status to change it.'
-            : 'Mark yourself for this day.'}
-        </Text>
-      </Card>
-
-      <Card
-        style={styles.panel}
         title="Class attendance"
         subtitle={formatDateLabel(selected)}
-        headerAccessory={<Text style={styles.count}>{presentCount} present</Text>}
+        headerAccessory={
+          <View style={styles.headerAccessory}>
+            <Text style={styles.count}>{presentCount} present</Text>
+            <Pressable
+              onPress={goToToday}
+              hitSlop={8}
+              accessibilityRole="button"
+              testID="calendar-today"
+            >
+              <Text style={styles.todayLink}>Today</Text>
+            </Pressable>
+          </View>
+        }
       >
         {loading ? (
           <Loader compact />
         ) : roster.length === 0 ? (
-          <Text style={styles.empty}>No classmates in the directory yet.</Text>
+          <Text style={styles.empty}>No students in the directory yet.</Text>
         ) : (
           <View style={styles.rosterList}>
             {roster.map((member) => {
@@ -310,16 +303,29 @@ export default function CalendarScreen() {
                     {member.username}
                     {isSelf ? ' (you)' : ''}
                   </Text>
-                  {status ? (
+                  {isAdmin ? (
+                    <View style={styles.rosterToggle}>
+                      <AttendanceToggle
+                        value={status}
+                        onChange={(next) => handleSetMark(member.uid, next)}
+                        disabled={savingUid !== null}
+                        size="sm"
+                        testID={`mark-${member.uid}`}
+                      />
+                    </View>
+                  ) : status ? (
                     <StatusPill status={status} size="sm" />
                   ) : (
-                    <Text style={styles.unmarked}>—</Text>
+                    <Text style={styles.unmarked}>Not marked</Text>
                   )}
                 </View>
               );
             })}
           </View>
         )}
+        {!loading && !isAdmin && roster.length > 0 ? (
+          <Text style={styles.hint}>Attendance is taken by an admin.</Text>
+        ) : null}
       </Card>
 
       <Card
@@ -394,11 +400,27 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: spacing.xl,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   title: {
     color: colors.text,
     fontFamily: fonts.mono,
     fontSize: fontSizes.xl,
     letterSpacing: 1,
+  },
+  adminBadge: {
+    color: colors.panel,
+    backgroundColor: colors.cyan,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radii.sm,
+    overflow: 'hidden',
   },
   subtitle: {
     color: colors.textSecondary,
@@ -457,21 +479,26 @@ const styles = StyleSheet.create({
   panel: {
     marginTop: spacing.lg,
   },
+  headerAccessory: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   todayLink: {
     color: colors.accentStrong,
     fontFamily: fonts.mono,
     fontSize: fontSizes.sm,
+  },
+  count: {
+    color: colors.present,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
   },
   hint: {
     color: colors.textMuted,
     fontFamily: fonts.sans,
     fontSize: fontSizes.xs,
     marginTop: spacing.md,
-  },
-  count: {
-    color: colors.present,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
   },
   empty: {
     color: colors.textMuted,
@@ -501,10 +528,13 @@ const styles = StyleSheet.create({
   rosterSelf: {
     color: colors.accentStrong,
   },
+  rosterToggle: {
+    width: 150,
+  },
   unmarked: {
     color: colors.textMuted,
     fontFamily: fonts.mono,
-    fontSize: fontSizes.sm,
+    fontSize: fontSizes.xs,
   },
   eventList: {
     gap: spacing.sm,

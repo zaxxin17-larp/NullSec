@@ -42,6 +42,7 @@ export async function signUp(
     await setDoc(doc(db, 'members', user.uid), {
       uid: user.uid,
       username,
+      role: 'student',
       createdAt: serverTimestamp(),
     });
   } catch {

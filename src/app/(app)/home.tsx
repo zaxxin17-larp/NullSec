@@ -1,24 +1,25 @@
 import Constants from 'expo-constants';
 import { Redirect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { ReleaseNotification } from '@/components/release-notification';
 import { ScreenContainer } from '@/components/screen-container';
-import { AttendanceToggle } from '@/components/ui/attendance-toggle';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader } from '@/components/ui/loader';
 import { StatusPill } from '@/components/ui/status-pill';
 import { useAuth } from '@/context/auth-context';
 import {
-  setMyAttendance,
   subscribeToAttendanceRange,
   type AttendanceDay,
-  type AttendanceStatus,
 } from '@/services/attendance';
 import { subscribeToEvents, type CalendarEvent } from '@/services/events';
-import { ensureMemberProfile } from '@/services/members';
+import {
+  ensureMemberProfile,
+  subscribeToMember,
+  type MemberRole,
+} from '@/services/members';
 import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 import { checkForUpdates } from '@/updates';
 import {
@@ -46,8 +47,7 @@ export default function HomeScreen() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [attendanceDays, setAttendanceDays] = useState<AttendanceDay[]>([]);
-  const [savingMark, setSavingMark] = useState(false);
-  const [markError, setMarkError] = useState<string | null>(null);
+  const [role, setRole] = useState<MemberRole>('student');
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
 
@@ -68,6 +68,16 @@ export default function HomeScreen() {
     if (!uid) return;
     ensureMemberProfile(uid, name);
   }, [uid, name]);
+
+  useEffect(() => {
+    if (!uid) return;
+    const unsubscribe = subscribeToMember(
+      uid,
+      (member) => setRole(member?.role ?? 'student'),
+      () => {},
+    );
+    return unsubscribe;
+  }, [uid]);
 
   useEffect(() => {
     if (!uid) return;
@@ -115,32 +125,9 @@ export default function HomeScreen() {
     return { present, absent, excused, total, rate };
   }, [attendanceDays, uid]);
 
-  const handleMarkToday = useCallback(
-    async (status: AttendanceStatus) => {
-      if (!uid || savingMark) return;
-      setSavingMark(true);
-      setMarkError(null);
-      try {
-        await setMyAttendance(uid, today, status);
-      } catch {
-        setMarkError('Could not save your attendance. Try again.');
-      } finally {
-        setSavingMark(false);
-      }
-    },
-    [uid, savingMark, today],
-  );
+  const isAdmin = role === 'admin';
 
-  if (!user) {
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  const upcoming = events
-    .filter((event) => event.date >= today)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 4);
-
-  const joinedLabel = user.metadata.creationTime
+  const joinedLabel = (user && user.metadata && user.metadata.creationTime)
     ? user.metadata.creationTime.slice(0, 10)
     : '—';
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
@@ -155,6 +142,15 @@ export default function HomeScreen() {
       setCheckingUpdate(false);
     }
   }
+
+  if (!user) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  const upcoming = events
+    .filter((event) => event.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 4);
 
   return (
     <ScreenContainer>
@@ -178,21 +174,11 @@ export default function HomeScreen() {
         >
           <Text style={styles.muted}>
             {todayStatus
-              ? `You are marked ${todayStatus} for today.`
-              : 'You have not marked attendance for today yet.'}
+              ? `You are marked ${todayStatus} today.`
+              : 'Your attendance has not been taken yet.'}
           </Text>
-          <View style={styles.toggleWrap}>
-            <AttendanceToggle
-              value={todayStatus}
-              onChange={handleMarkToday}
-              disabled={savingMark}
-              size="sm"
-              testID="home-mark"
-            />
-          </View>
-          {markError ? <Text style={styles.error}>{markError}</Text> : null}
           <Button
-            label="Open calendar"
+            label={isAdmin ? 'Take attendance' : 'Open calendar'}
             variant="secondary"
             onPress={() => router.push('/(app)/calendar')}
             style={styles.cardAction}
@@ -255,11 +241,11 @@ export default function HomeScreen() {
           style={[styles.cell, twoColumn && styles.cellHalf]}
         >
           <Text style={styles.profileName}>{name}</Text>
-          <Text style={styles.muted}>{user.email}</Text>
+          <Text style={styles.muted}>{user?.email ?? ''}</Text>
           <View style={styles.metaList}>
             <Text style={styles.meta}>Member since {joinedLabel}</Text>
             <Text style={styles.meta} numberOfLines={1}>
-              ID {user.uid}
+              ID {user?.uid ?? ''}
             </Text>
           </View>
         </Card>

@@ -75,18 +75,23 @@ export function subscribeToAttendanceRange(
   );
 }
 
-/** Set the signed-in user's attendance status for a given day (creates the day). */
-export async function setMyAttendance(
-  uid: string,
+/**
+ * Set a student's attendance status for a given day (creates the day if needed).
+ * `actorUid` is the signed-in user performing the write — only an admin passes
+ * the security rules, but the field is always recorded for the audit trail.
+ */
+export async function setAttendanceFor(
+  targetUid: string,
   date: string,
   status: AttendanceStatus,
+  actorUid: string,
 ): Promise<void> {
   await setDoc(
     doc(db, 'classes', CLASS_ID, 'days', date),
     {
       date,
-      marks: { [uid]: status },
-      updatedBy: uid,
+      marks: { [targetUid]: status },
+      updatedBy: actorUid,
       updatedAt: serverTimestamp(),
     },
     { merge: true },

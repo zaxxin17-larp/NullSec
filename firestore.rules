@@ -11,6 +11,14 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // An admin is a member whose directory document has role == 'admin'. The
+    // role is forced to 'student' on create and cannot be changed by the client,
+    // so it can only be set from the console / admin SDK.
+    function isAdmin() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/members/$(request.auth.uid)).data.role == 'admin';
+    }
+
     function profileFields() {
       return ['username', 'email', 'acceptedTerms', 'acceptedTermsAt', 'createdAt'];
     }
@@ -70,7 +78,7 @@ service cloud.firestore {
     // Public class directory: members/{uid}. Name only (no email), readable by
     // any signed-in classmate.
     function memberFields() {
-      return ['uid', 'username', 'createdAt'];
+      return ['uid', 'username', 'role', 'createdAt'];
     }
 
     match /members/{uid} {
@@ -80,18 +88,21 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(memberFields())
         && request.resource.data.uid == uid
         && validUsername(request.resource.data.username)
+        && request.resource.data.role == 'student'
         && request.resource.data.createdAt == request.time;
 
       allow update: if isOwner(uid)
         && request.resource.data.keys().hasOnly(memberFields())
         && request.resource.data.uid == uid
-        && validUsername(request.resource.data.username);
+        && validUsername(request.resource.data.username)
+        && request.resource.data.role == resource.data.role;
 
       allow delete: if isOwner(uid);
     }
 
     // Shared class attendance: classes/main/days/{date}. Each day holds a
-    // `marks` map of uid -> status. Readable by any signed-in classmate.
+    // `marks` map of uid -> status. Readable by any signed-in classmate, but
+    // only an admin may write.
     function validAttendanceDay(data, date) {
       return data.date == date
         && data.date is string
@@ -104,7 +115,7 @@ service cloud.firestore {
     match /classes/main/days/{date} {
       allow read: if request.auth != null;
 
-      allow create, update: if request.auth != null
+      allow create, update: if isAdmin()
         && validAttendanceDay(request.resource.data, date);
 
       allow delete: if false;
