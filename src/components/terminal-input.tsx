@@ -66,6 +66,11 @@ export function TerminalInput({
         <Text style={[styles.label, error && styles.labelError]}>{label}</Text>
       ) : null}
       <View
+        // collapsable={false} is required: this wrapper's style changes on focus
+        // (the glowShadow adds elevation/shadowColor), which otherwise makes
+        // Fabric recreate the native TextInput and drop focus mid-typing on
+        // Android/New Architecture. See facebook/react-native#45798.
+        collapsable={false}
         style={[
           styles.box,
           { borderColor },
