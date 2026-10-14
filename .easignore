@@ -1,0 +1,45 @@
+# EAS Build upload filter.
+# This REPLACES .gitignore for EAS Build, so it mirrors it — with one change:
+# .env is NOT ignored here so EXPO_PUBLIC_* values are uploaded and inlined into
+# the bundle. Git still ignores .env (.gitignore), so it is never committed.
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+dist-web/
+dist-android/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# NOTE: .env / .env*.local are intentionally NOT ignored (see header above).
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="11" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="#0a0a0a" />
+  <rect x="54" y="54" width="916" height="916" fill="none" stroke="#00ff41" stroke-opacity="0.22" stroke-width="4" />
+  <text x="512" y="430" font-family="JetBrains Mono" font-weight="Bold" font-size="196" fill="#00ff41" text-anchor="middle" filter="url(#glow)">&gt;_</text>
+  <text x="512" y="648" font-family="JetBrains Mono" font-weight="Bold" font-size="138" letter-spacing="10" fill="#00ff41" text-anchor="middle" filter="url(#glow)">NULLSEC</text>
+  <text x="512" y="768" font-family="JetBrains Mono" font-size="30" letter-spacing="9" fill="#0a7a24" text-anchor="middle">SECURE TERMINAL ACCESS</text>
+</svg>
