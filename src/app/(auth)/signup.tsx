@@ -2,6 +2,7 @@ import { Link, Redirect } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { BlinkingCursor } from '@/components/blinking-cursor';
 import { ScreenContainer } from '@/components/screen-container';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -87,6 +88,7 @@ export default function SignUpScreen() {
           <View style={styles.brandRow}>
             <View style={styles.brandMark} />
             <Text style={styles.brand}>NULLSEC</Text>
+            <BlinkingCursor style={styles.brandCursor} />
           </View>
           <Text style={styles.brandSub}>Create your class account</Text>
         </View>
@@ -222,11 +224,16 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
   },
   brand: {
-    color: colors.text,
+    color: colors.accentStrong,
     fontFamily: fonts.mono,
     fontSize: fontSizes.xl,
-    fontWeight: '700',
     letterSpacing: 4,
+  },
+  brandCursor: {
+    color: colors.accentStrong,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xl,
+    marginLeft: 2,
   },
   brandSub: {
     color: colors.textMuted,

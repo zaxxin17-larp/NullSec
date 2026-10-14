@@ -1,41 +1,49 @@
-import { Platform, type TextStyle, type ViewStyle } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
 
 /**
- * NullSec / ctOS-class design system: single source of truth for colors, fonts,
- * spacing, radii and effects.
+ * NullSec design system — hybrid ctOS.
  *
- * Aesthetic: clean white "futuristic operating system" — light-gray canvas,
- * white surfaces, charcoal type, thin precise borders and restrained
- * cyan / electric-blue accents. No neon, no oversized rounded cards.
- *
- * Legacy token names (primary, textDim, error, ...) are kept as aliases so any
- * component can be migrated incrementally without breaking compilation.
+ * Light page canvas with dark ctOS "HUD" panels (top nav, card headers) and
+ * cyan / orange technical accents. Typography is Share Tech Mono (the "hacker"
+ * face) loaded in the root layout.
  */
 
+const SHARE_TECH_MONO = 'ShareTechMono_400Regular';
+
 export const colors = {
-  // Canvas & surfaces
-  background: '#eef0f3',
+  // Light canvas & surfaces
+  background: '#e9edf1',
   surface: '#ffffff',
-  surfaceAlt: '#f6f7f9',
-  surfaceSunken: '#e9ebef',
-  inputBackground: '#f6f7f9',
+  surfaceAlt: '#f4f6f8',
+  surfaceSunken: '#e2e7ec',
+  inputBackground: '#f4f6f8',
 
-  // Lines
-  border: '#dfe3e8',
-  borderDim: '#eceef1',
-  borderStrong: '#c8ced6',
-  borderFocus: '#0093b0',
+  // Light-mode lines
+  border: '#cdd4db',
+  borderDim: '#e3e8ed',
+  borderStrong: '#aab3bd',
+  borderFocus: '#0a9db3',
 
-  // Type
-  text: '#14171a',
-  textSecondary: '#48515a',
-  textMuted: '#818a93',
+  // ctOS dark HUD panels
+  panel: '#0c1116',
+  panelAlt: '#141b22',
+  panelLine: '#243039',
+  ink: '#d8e7ea',
+  inkDim: '#7c8b94',
+  cyan: '#3fd6e8',
+  cyanDim: '#1d7f8c',
+  orange: '#f5a623',
+
+  // Type (light surfaces)
+  text: '#111820',
+  textSecondary: '#3f4a54',
+  textMuted: '#77828c',
 
   // Accent (cyan / electric blue)
-  accent: '#0093b0',
-  accentStrong: '#00768f',
+  accent: '#0a9db3',
+  accentStrong: '#067e91',
   accentSoft: '#e0f4f8',
-  glow: '#0093b0',
+  glow: '#3fd6e8',
   blue: '#2f6bed',
 
   // Semantic — attendance
@@ -58,40 +66,22 @@ export const colors = {
   disabledText: '#98a1aa',
 
   // Utility
-  overlay: 'rgba(15, 20, 25, 0.42)',
+  overlay: 'rgba(8, 12, 16, 0.52)',
   white: '#ffffff',
   transparent: 'transparent',
 
-  // Legacy aliases (map onto the new palette)
-  primary: '#0093b0',
-  primaryDim: '#00768f',
+  // Legacy aliases (map onto the palette)
+  primary: '#0a9db3',
+  primaryDim: '#067e91',
   primaryFaint: '#e0f4f8',
-  textDim: '#48515a',
+  textDim: '#3f4a54',
 } as const;
 
-function pick(value: string | undefined, fallback: string): string {
-  return value ?? fallback;
-}
-
 export const fonts = {
-  /** UI / body font — system stack for crisp native + web rendering. */
-  sans: pick(
-    Platform.select({
-      ios: 'System',
-      android: 'sans-serif',
-      default: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-    }),
-    'system-ui, sans-serif',
-  ),
-  /** Technical font for labels and numbers. */
-  mono: pick(
-    Platform.select({
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace',
-    }),
-    'monospace',
-  ),
+  /** Body / UI — the Share Tech Mono "hacker" face. */
+  sans: SHARE_TECH_MONO,
+  /** Technical labels and numbers — same mono face. */
+  mono: SHARE_TECH_MONO,
   /** @deprecated kept for legacy components. */
   monoFallback: 'monospace',
 } as const;
@@ -123,17 +113,23 @@ export const radii = {
   pill: 999,
 } as const;
 
-/** Soft, restrained elevation for cards and floating surfaces. */
+/** Crisp ctOS elevation — a hard offset shadow rather than a soft blur. */
 export const shadow: ViewStyle = {
-  shadowColor: '#0b1b22',
+  shadowColor: '#0a0f14',
   shadowOffset: { width: 0, height: 6 },
-  shadowOpacity: 0.08,
-  shadowRadius: 16,
-  elevation: 2,
+  shadowOpacity: 0.16,
+  shadowRadius: 14,
+  elevation: 3,
 };
 
 /** @deprecated legacy alias — use `shadow`. */
-export const glowShadow: ViewStyle = shadow;
+export const glowShadow: ViewStyle = {
+  shadowColor: colors.cyan,
+  shadowOffset: { width: 0, height: 0 },
+  shadowOpacity: 0.5,
+  shadowRadius: 12,
+  elevation: 6,
+};
 
 export const monoText: TextStyle = {
   fontFamily: fonts.mono,

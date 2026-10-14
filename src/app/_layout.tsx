@@ -1,3 +1,5 @@
+import { ShareTechMono_400Regular } from '@expo-google-fonts/share-tech-mono';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -12,9 +14,17 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 export default function RootLayout() {
+  const [loaded, error] = useFonts({ ShareTechMono_400Regular });
+
   useEffect(() => {
-    SplashScreen.hideAsync().catch(() => {});
-  }, []);
+    if (loaded || error) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [loaded, error]);
+
+  if (!loaded && !error) {
+    return null;
+  }
 
   return (
     <GestureHandlerRootView style={styles.root}>

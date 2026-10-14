@@ -39,7 +39,7 @@ export function Button({
 
   const textColor =
     variant === 'primary'
-      ? colors.white
+      ? colors.cyan
       : variant === 'danger'
         ? colors.danger
         : colors.text;
@@ -110,8 +110,8 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
   },
   primary: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
+    backgroundColor: colors.panel,
+    borderColor: colors.panel,
   },
   secondary: {
     backgroundColor: colors.surface,

@@ -1,5 +1,5 @@
 import { usePathname, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 
+import { BlinkingCursor } from '@/components/blinking-cursor';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -16,11 +17,15 @@ import { logOut } from '@/services/auth';
 import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 
 const NAV_ITEMS = [
-  { label: 'System', href: '/(app)/home', match: '/home' },
-  { label: 'Attendance', href: '/(app)/calendar', match: '/calendar' },
+  { label: 'SYSTEM', href: '/(app)/home', match: '/home' },
+  { label: 'ATTENDANCE', href: '/(app)/calendar', match: '/calendar' },
 ] as const;
 
-const WIDE_BREAKPOINT = 760;
+const WIDE_BREAKPOINT = 820;
+
+function formatClock(date: Date): string {
+  return date.toTimeString().slice(0, 8);
+}
 
 export function TopNav() {
   const { user } = useAuth();
@@ -32,8 +37,14 @@ export function TopNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [clock, setClock] = useState(() => formatClock(new Date()));
 
-  const name = user?.displayName?.trim() || user?.email || 'Operator';
+  useEffect(() => {
+    const timer = setInterval(() => setClock(formatClock(new Date())), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const name = user?.displayName?.trim() || user?.email || 'OPERATOR';
 
   function isActive(match: string): boolean {
     return pathname === match || pathname.startsWith(`${match}/`);
@@ -65,8 +76,11 @@ export function TopNav() {
             style={styles.brandRow}
           >
             <View style={styles.brandMark} />
-            <View>
-              <Text style={styles.brand}>NULLSEC</Text>
+            <View style={styles.brandText}>
+              <View style={styles.brandLine}>
+                <Text style={styles.brand}>NULLSEC</Text>
+                <BlinkingCursor style={styles.brandCursor} />
+              </View>
               <Text style={styles.brandSub}>CLASS NETWORK</Text>
             </View>
           </Pressable>
@@ -98,17 +112,21 @@ export function TopNav() {
         </View>
 
         <View style={styles.right}>
-          <View style={styles.statusDot} />
-          <Text style={styles.statusText}>ONLINE</Text>
+          <Text style={styles.clock}>{clock}</Text>
+
+          <View style={styles.status}>
+            <View style={styles.statusDot} />
+            {isWide ? <Text style={styles.statusText}>ONLINE</Text> : null}
+          </View>
 
           {isWide ? <Text style={styles.userName}>{name}</Text> : null}
 
-          <Avatar name={name} size={32} testID="nav-avatar" />
+          <Avatar name={name} size={30} testID="nav-avatar" />
 
           {isWide ? (
             <Button
-              label="Sign out"
-              variant="ghost"
+              label="SIGN OUT"
+              variant="secondary"
               size="sm"
               onPress={() => setConfirmSignOut(true)}
               testID="nav-signout"
@@ -127,6 +145,8 @@ export function TopNav() {
           )}
         </View>
       </View>
+
+      <View style={styles.scanline} />
 
       {!isWide && menuOpen ? (
         <View style={styles.mobileMenu}>
@@ -158,7 +178,7 @@ export function TopNav() {
             style={styles.mobileItem}
             testID="nav-mobile-signout"
           >
-            <Text style={[styles.mobileLabel, styles.mobileSignOut]}>Sign out</Text>
+            <Text style={[styles.mobileLabel, styles.mobileSignOut]}>SIGN OUT</Text>
           </Pressable>
         </View>
       ) : null}
@@ -180,16 +200,22 @@ export function TopNav() {
 
 const styles = StyleSheet.create({
   header: {
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: colors.panel,
   },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    height: 60,
+    height: 58,
+    maxWidth: 1180,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  scanline: {
+    height: 1,
+    backgroundColor: colors.cyan,
+    opacity: 0.55,
   },
   left: {
     flexDirection: 'row',
@@ -205,21 +231,33 @@ const styles = StyleSheet.create({
   brandMark: {
     width: 10,
     height: 10,
-    backgroundColor: colors.accent,
-    borderRadius: radii.sm,
+    backgroundColor: colors.cyan,
+  },
+  brandText: {
+    justifyContent: 'center',
+  },
+  brandLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   brand: {
-    color: colors.text,
+    color: colors.cyan,
     fontFamily: fonts.mono,
     fontSize: fontSizes.md,
-    fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: 3,
+  },
+  brandCursor: {
+    color: colors.cyan,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.md,
+    marginLeft: 2,
   },
   brandSub: {
-    color: colors.textMuted,
+    color: colors.inkDim,
     fontFamily: fonts.mono,
     fontSize: 9,
-    letterSpacing: 2,
+    letterSpacing: 3,
+    marginTop: 1,
   },
   nav: {
     flexDirection: 'row',
@@ -231,43 +269,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   navLabel: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
+    color: colors.inkDim,
+    fontFamily: fonts.mono,
     fontSize: fontSizes.sm,
-    fontWeight: '500',
+    letterSpacing: 1.5,
   },
   navLabelActive: {
-    color: colors.accentStrong,
-    fontWeight: '700',
+    color: colors.cyan,
   },
   navUnderline: {
     position: 'absolute',
     bottom: -6,
     height: 2,
     width: '100%',
-    backgroundColor: colors.accent,
+    backgroundColor: colors.cyan,
   },
   right: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
   },
+  clock: {
+    color: colors.inkDim,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
+    letterSpacing: 1,
+  },
+  status: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   statusDot: {
     width: 7,
     height: 7,
     borderRadius: radii.pill,
-    backgroundColor: colors.present,
+    backgroundColor: colors.cyan,
   },
   statusText: {
-    color: colors.textMuted,
+    color: colors.inkDim,
     fontFamily: fonts.mono,
     fontSize: 10,
     letterSpacing: 1.5,
   },
   userName: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
+    color: colors.ink,
+    fontFamily: fonts.mono,
     fontSize: fontSizes.sm,
+    letterSpacing: 0.5,
+    maxWidth: 160,
   },
   menuButton: {
     width: 34,
@@ -275,36 +325,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
+    borderColor: colors.panelLine,
   },
   menuGlyph: {
-    color: colors.text,
+    color: colors.ink,
     fontSize: fontSizes.md,
   },
   mobileMenu: {
+    backgroundColor: colors.panelAlt,
     borderTopWidth: 1,
-    borderTopColor: colors.borderDim,
-    paddingVertical: spacing.xs,
+    borderTopColor: colors.panelLine,
   },
   mobileItem: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
   mobileItemActive: {
-    backgroundColor: colors.accentSoft,
+    backgroundColor: colors.panel,
   },
   mobileLabel: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
+    color: colors.inkDim,
+    fontFamily: fonts.mono,
     fontSize: fontSizes.md,
-    fontWeight: '500',
+    letterSpacing: 1.5,
   },
   mobileLabelActive: {
-    color: colors.accentStrong,
-    fontWeight: '700',
+    color: colors.cyan,
   },
   mobileSignOut: {
-    color: colors.danger,
+    color: colors.orange,
   },
 });

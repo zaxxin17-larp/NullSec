@@ -2,6 +2,7 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { BlinkingCursor } from '@/components/blinking-cursor';
 import { ScreenContainer } from '@/components/screen-container';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -44,6 +45,7 @@ export default function ForgotPasswordScreen() {
           <View style={styles.brandRow}>
             <View style={styles.brandMark} />
             <Text style={styles.brand}>NULLSEC</Text>
+            <BlinkingCursor style={styles.brandCursor} />
           </View>
           <Text style={styles.brandSub}>Password recovery</Text>
         </View>
@@ -126,11 +128,17 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
   },
   brand: {
-    color: colors.text,
+    color: colors.accentStrong,
     fontFamily: fonts.mono,
     fontSize: fontSizes.xl,
     fontWeight: '700',
     letterSpacing: 4,
+  },
+  brandCursor: {
+    color: colors.accentStrong,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xl,
+    marginLeft: 2,
   },
   brandSub: {
     color: colors.textMuted,

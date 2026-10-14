@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 
 import { TopNav } from '@/components/ui/top-nav';
@@ -8,6 +9,7 @@ import { colors } from '@/theme';
 export default function AppLayout() {
   return (
     <View style={styles.root}>
+      <StatusBar style="light" />
       <TopNav />
       <View style={styles.body}>
         <Stack
