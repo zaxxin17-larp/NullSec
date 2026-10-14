@@ -80,6 +80,15 @@ export function formatDateLabel(key: DateKey): string {
   return `${String(day).padStart(2, '0')} ${MONTH_NAMES[month0] ?? ''} ${year}`.trim();
 }
 
+/** Short date + time label from a Date, e.g. "14 OCT 2026 · 14:05". */
+export function formatDateTime(date: Date): string {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = (MONTH_NAMES[date.getMonth()] ?? '').slice(0, 3);
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  return `${day} ${month} ${date.getFullYear()} · ${hh}:${mm}`;
+}
+
 /** Clamp-safe month arithmetic across year boundaries. */
 export function addMonths(
   year: number,

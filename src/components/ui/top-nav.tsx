@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { label: 'SYSTEM', href: '/(app)/home', match: '/home' },
   { label: 'ATTENDANCE', href: '/(app)/calendar', match: '/calendar' },
   { label: 'CLASSMATES', href: '/(app)/members', match: '/members' },
+  { label: 'NOTICES', href: '/(app)/announcements', match: '/announcements' },
 ] as const;
 
 const WIDE_BREAKPOINT = 820;

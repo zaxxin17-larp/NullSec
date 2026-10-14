@@ -11,6 +11,10 @@ import { Loader } from '@/components/ui/loader';
 import { StatusPill } from '@/components/ui/status-pill';
 import { useAuth } from '@/context/auth-context';
 import {
+  subscribeToAnnouncements,
+  type Announcement,
+} from '@/services/announcements';
+import {
   subscribeToAttendanceRange,
   type AttendanceDay,
 } from '@/services/attendance';
@@ -24,6 +28,7 @@ import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 import { checkForUpdates } from '@/updates';
 import {
   formatDateLabel,
+  formatDateTime,
   formatFullDate,
   makeDateKey,
   todayKey,
@@ -47,6 +52,7 @@ export default function HomeScreen() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [attendanceDays, setAttendanceDays] = useState<AttendanceDay[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [role, setRole] = useState<MemberRole>('student');
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
@@ -103,6 +109,11 @@ export default function HomeScreen() {
     return unsubscribe;
   }, [uid, monthStart, monthEnd]);
 
+  useEffect(() => {
+    const unsubscribe = subscribeToAnnouncements(setAnnouncements, () => {});
+    return unsubscribe;
+  }, []);
+
   const todayStatus = useMemo(() => {
     if (!uid) return undefined;
     return attendanceDays.find((day) => day.date === today)?.marks[uid];
@@ -152,6 +163,8 @@ export default function HomeScreen() {
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 4);
 
+  const latestAnnouncements = announcements.slice(0, 3);
+
   return (
     <ScreenContainer>
       <View style={styles.header}>
@@ -164,6 +177,39 @@ export default function HomeScreen() {
       <ReleaseNotification />
 
       <View style={[styles.grid, twoColumn && styles.gridWide]}>
+        <Card
+          title="Notices"
+          subtitle="Class announcements"
+          style={[styles.cell, twoColumn && styles.cellHalf]}
+          headerAccessory={<Text style={styles.count}>{announcements.length}</Text>}
+        >
+          {latestAnnouncements.length === 0 ? (
+            <Text style={styles.muted}>No announcements yet.</Text>
+          ) : (
+            <View style={styles.list}>
+              {latestAnnouncements.map((item) => (
+                <View key={item.id} style={styles.noticeRow}>
+                  <Text style={styles.noticeTitle} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.noticeMeta}>
+                    {item.createdAt
+                      ? `${item.authorName} · ${formatDateTime(item.createdAt)}`
+                      : item.authorName}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+          <Button
+            label="View all"
+            variant="secondary"
+            onPress={() => router.push('/(app)/announcements')}
+            style={styles.cardAction}
+            testID="home-open-announcements"
+          />
+        </Card>
+
         <Card
           title="Today"
           subtitle="Your attendance"
@@ -265,6 +311,11 @@ export default function HomeScreen() {
               label="Classmates directory"
               online
               onPress={() => router.push('/(app)/members')}
+            />
+            <ModuleRow
+              label="Announcements"
+              online
+              onPress={() => router.push('/(app)/announcements')}
             />
             <ModuleRow label="Messages" online={false} />
             <ModuleRow label="Notifications" online={false} />
@@ -463,6 +514,22 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontFamily: fonts.sans,
     fontSize: fontSizes.xs,
+  },
+  noticeRow: {
+    borderLeftWidth: 2,
+    borderLeftColor: colors.cyan,
+    paddingLeft: spacing.md,
+  },
+  noticeTitle: {
+    color: colors.text,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.sm,
+  },
+  noticeMeta: {
+    color: colors.textMuted,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
+    marginTop: 1,
   },
   profileName: {
     color: colors.text,
