@@ -317,7 +317,11 @@ export default function HomeScreen() {
               online
               onPress={() => router.push('/(app)/announcements')}
             />
-            <ModuleRow label="Messages" online={false} />
+            <ModuleRow
+              label="Messages"
+              online
+              onPress={() => router.push('/(app)/messages')}
+            />
             <ModuleRow label="Notifications" online={false} />
           </View>
         </Card>

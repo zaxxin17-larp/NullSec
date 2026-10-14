@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { label: 'ATTENDANCE', href: '/(app)/calendar', match: '/calendar' },
   { label: 'CLASSMATES', href: '/(app)/members', match: '/members' },
   { label: 'NOTICES', href: '/(app)/announcements', match: '/announcements' },
+  { label: 'MESSAGES', href: '/(app)/messages', match: '/messages' },
 ] as const;
 
 const WIDE_BREAKPOINT = 820;
