@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { Redirect, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 import { ReleaseNotification } from '@/components/release-notification';
 import { ScreenContainer } from '@/components/screen-container';
@@ -256,8 +256,16 @@ export default function HomeScreen() {
           style={[styles.cell, twoColumn && styles.cellHalf]}
         >
           <View style={styles.moduleList}>
-            <ModuleRow label="Attendance calendar" online />
-            <ModuleRow label="Classmates directory" online={false} />
+            <ModuleRow
+              label="Attendance calendar"
+              online
+              onPress={() => router.push('/(app)/calendar')}
+            />
+            <ModuleRow
+              label="Classmates directory"
+              online
+              onPress={() => router.push('/(app)/members')}
+            />
             <ModuleRow label="Messages" online={false} />
             <ModuleRow label="Notifications" online={false} />
           </View>
@@ -306,15 +314,40 @@ function Stat({
   );
 }
 
-function ModuleRow({ label, online }: { label: string; online: boolean }) {
-  return (
-    <View style={styles.moduleRow}>
+function ModuleRow({
+  label,
+  online,
+  onPress,
+}: {
+  label: string;
+  online: boolean;
+  onPress?: () => void;
+}) {
+  const content = (
+    <>
       <View style={[styles.moduleDot, online ? styles.dotOn : styles.dotOff]} />
       <Text style={styles.moduleLabel}>{label}</Text>
       <Text style={[styles.moduleState, online ? styles.stateOn : styles.stateOff]}>
         {online ? 'Online' : 'Planned'}
       </Text>
-    </View>
+      {onPress ? <Text style={styles.moduleArrow}>{'\u203a'}</Text> : null}
+    </>
+  );
+
+  if (!onPress) {
+    return <View style={styles.moduleRow}>{content}</View>;
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={styles.moduleRow}
+      testID={`module-${label.toLowerCase().replace(/\s+/g, '-')}`}
+    >
+      {content}
+    </Pressable>
   );
 }
 
@@ -480,6 +513,12 @@ const styles = StyleSheet.create({
   },
   stateOff: {
     color: colors.textMuted,
+  },
+  moduleArrow: {
+    color: colors.accentStrong,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.md,
+    marginLeft: spacing.sm,
   },
   updateMessage: {
     color: colors.accentStrong,
