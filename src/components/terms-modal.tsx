@@ -1,15 +1,7 @@
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { TerminalButton } from '@/components/terminal-button';
-import { BlinkingCursor } from '@/components/blinking-cursor';
-import { colors, fontSizes, fonts, spacing } from '@/theme';
+import { Button } from '@/components/ui/button';
+import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 
 type TermsModalProps = {
   visible: boolean;
@@ -19,24 +11,24 @@ type TermsModalProps = {
 
 const TERMS_SECTIONS = [
   {
-    heading: '01 // ACCEPTANCE',
-    body: 'By accessing NullSec you agree to operate within authorized systems only. Unauthorized access is prohibited and will be logged.',
+    heading: 'Using NullSec',
+    body: 'NullSec is a classroom community space for attendance, classmates and messaging. Use it only for your section and follow your school\'s rules.',
   },
   {
-    heading: '02 // DATA HANDLING',
-    body: 'Credentials are transmitted over encrypted channels. Your profile record stores a username, email address, and acceptance timestamp. No plaintext passwords are retained.',
+    heading: 'Your data',
+    body: 'We store your name, email address and the information you choose to add to your profile. Passwords are handled securely and never stored in plain text.',
   },
   {
-    heading: '03 // CONDUCT',
-    body: 'You agree not to abuse, reverse engineer, or disrupt the service. Accounts found violating this clause may be suspended without notice.',
+    heading: 'Attendance',
+    body: 'Attendance records are maintained by authorized class members. Private attendance notes are not shown on public profiles or shared in chats.',
   },
   {
-    heading: '04 // LIABILITY',
-    body: 'NullSec is provided "as is" without warranty. The operators accept no liability for damages arising from use of this terminal.',
+    heading: 'Conduct',
+    body: 'Be respectful. Do not share others\' private information. Accounts that misuse the service may be suspended.',
   },
   {
-    heading: '05 // TERMINATION',
-    body: 'You may terminate this agreement at any time by logging out and requesting account deletion. Continued use constitutes ongoing acceptance.',
+    heading: 'Changes',
+    body: 'We may update these terms as the platform evolves. Continued use means you accept the latest version.',
   },
 ];
 
@@ -52,14 +44,14 @@ export function TermsModal({ visible, onAccept, onClose }: TermsModalProps) {
       <View style={styles.overlay}>
         <View style={styles.box}>
           <View style={styles.header}>
-            <Text style={styles.title}>TERMS &amp; CONDITIONS</Text>
+            <Text style={styles.title}>Terms &amp; Conditions</Text>
             <Pressable
               onPress={onClose}
               accessibilityRole="button"
               accessibilityLabel="Close terms"
               hitSlop={12}
             >
-              <Text style={styles.close}>[X]</Text>
+              <Text style={styles.close}>{'\u2715'}</Text>
             </Pressable>
           </View>
 
@@ -67,37 +59,18 @@ export function TermsModal({ visible, onAccept, onClose }: TermsModalProps) {
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator
-            indicatorStyle="white"
           >
-            <Text style={styles.intro}>
-              NULLSEC PROTOCOL // v1.0
-              {'\n'}
-              READ CAREFULLY BEFORE PROCEEDING
-            </Text>
             {TERMS_SECTIONS.map((section) => (
               <View key={section.heading} style={styles.section}>
                 <Text style={styles.heading}>{section.heading}</Text>
                 <Text style={styles.body}>{section.body}</Text>
               </View>
             ))}
-            <View style={styles.footerCursor}>
-              <BlinkingCursor />
-              <Text style={styles.footerText}>END OF TRANSMISSION</Text>
-            </View>
           </ScrollView>
 
           <View style={styles.actions}>
-            <TerminalButton
-              label="I ACCEPT"
-              onPress={onAccept}
-              testID="terms-accept"
-            />
-            <TerminalButton
-              label="Decline"
-              variant="ghost"
-              onPress={onClose}
-              style={styles.decline}
-            />
+            <Button label="Cancel" variant="secondary" onPress={onClose} style={styles.action} />
+            <Button label="I agree" onPress={onAccept} style={styles.action} testID="terms-accept" />
           </View>
         </View>
       </View>
@@ -109,86 +82,68 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: colors.overlay,
+    alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
   },
   box: {
-    flex: 1,
+    width: '100%',
+    maxWidth: 520,
     maxHeight: '88%',
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 0,
-    padding: spacing.lg,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    padding: spacing.xl,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderDim,
     paddingBottom: spacing.md,
     marginBottom: spacing.md,
   },
   title: {
-    color: colors.primary,
-    fontFamily: fonts.mono,
+    color: colors.text,
+    fontFamily: fonts.sans,
     fontSize: fontSizes.lg,
-    letterSpacing: 3,
+    fontWeight: '700',
   },
   close: {
-    color: colors.error,
-    fontFamily: fonts.mono,
+    color: colors.textSecondary,
     fontSize: fontSizes.md,
-    letterSpacing: 2,
   },
   scroll: {
-    flex: 1,
+    flexGrow: 0,
   },
   scrollContent: {
-    paddingBottom: spacing.lg,
-  },
-  intro: {
-    color: colors.textMuted,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.sm,
-    letterSpacing: 1,
-    lineHeight: 20,
-    marginBottom: spacing.lg,
+    paddingBottom: spacing.md,
   },
   section: {
     marginBottom: spacing.lg,
   },
   heading: {
-    color: colors.primary,
-    fontFamily: fonts.mono,
+    color: colors.text,
+    fontFamily: fonts.sans,
     fontSize: fontSizes.md,
-    letterSpacing: 2,
+    fontWeight: '600',
     marginBottom: spacing.xs,
   },
   body: {
-    color: colors.textDim,
-    fontFamily: fonts.mono,
+    color: colors.textSecondary,
+    fontFamily: fonts.sans,
     fontSize: fontSizes.sm,
     lineHeight: 20,
-    letterSpacing: 0.5,
-  },
-  footerCursor: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  footerText: {
-    color: colors.textMuted,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    letterSpacing: 2,
   },
   actions: {
-    marginTop: spacing.lg,
-    gap: spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
-  decline: {
-    marginTop: 0,
+  action: {
+    minWidth: 110,
   },
 });

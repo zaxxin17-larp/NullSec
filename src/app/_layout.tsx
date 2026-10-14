@@ -1,4 +1,3 @@
-import { ShareTechMono_400Regular, useFonts } from '@expo-google-fonts/share-tech-mono';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -13,22 +12,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({ ShareTechMono_400Regular });
-
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsLoaded, fontError]);
-
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
+    <GestureHandlerRootView style={styles.root}>
       <AuthProvider>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <Stack
           screenOptions={{
             headerShown: false,
@@ -40,3 +31,7 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+const styles = {
+  root: { flex: 1, backgroundColor: colors.background },
+} as const;

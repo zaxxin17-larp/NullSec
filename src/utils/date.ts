@@ -23,6 +23,27 @@ export const MONTH_NAMES = [
 
 export const WEEKDAY_LABELS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'] as const;
 
+export const WEEKDAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const;
+
+function titleCase(value: string): string {
+  return value.charAt(0) + value.slice(1).toLowerCase();
+}
+
+/** e.g. "Tuesday · 14 October 2026" */
+export function formatFullDate(key: DateKey): string {
+  const { year, month0, day } = parseDateKey(key);
+  const weekday = WEEKDAY_NAMES[new Date(year, month0, day).getDay()] ?? '';
+  return `${weekday} · ${day} ${titleCase(MONTH_NAMES[month0] ?? '')} ${year}`;
+}
+
 /** Format a Date as a local `YYYY-MM-DD` key. */
 export function toDateKey(date: Date): DateKey {
   const year = date.getFullYear();

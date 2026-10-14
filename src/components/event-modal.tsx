@@ -9,10 +9,10 @@ import {
   View,
 } from 'react-native';
 
-import { TerminalButton } from '@/components/terminal-button';
-import { TerminalInput } from '@/components/terminal-input';
+import { Button } from '@/components/ui/button';
+import { TextField } from '@/components/ui/text-field';
 import { MAX_NOTES_LENGTH, MAX_TITLE_LENGTH } from '@/services/events';
-import { colors, fontSizes, fonts, spacing } from '@/theme';
+import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 import { formatDateLabel, type DateKey } from '@/utils/date';
 
 type EventModalProps = {
@@ -37,11 +37,11 @@ export function EventModal({
   function handleSubmit() {
     const trimmed = title.trim();
     if (!trimmed) {
-      setError('ERROR: TITLE REQUIRED');
+      setError('Title is required.');
       return;
     }
     if (trimmed.length > MAX_TITLE_LENGTH) {
-      setError(`ERROR: TITLE MAX ${MAX_TITLE_LENGTH} CHARS`);
+      setError(`Title must be ${MAX_TITLE_LENGTH} characters or fewer.`);
       return;
     }
     setError(null);
@@ -63,57 +63,56 @@ export function EventModal({
         <View style={styles.overlay}>
           <View style={styles.box}>
             <View style={styles.header}>
-              <Text style={styles.title}>NEW EVENT</Text>
+              <Text style={styles.title}>New event</Text>
               <Pressable
                 onPress={onClose}
                 accessibilityRole="button"
                 accessibilityLabel="Close event form"
                 hitSlop={12}
               >
-                <Text style={styles.close}>[X]</Text>
+                <Text style={styles.close}>{'\u2715'}</Text>
               </Pressable>
             </View>
 
-            {date ? (
-              <Text style={styles.dateLabel}>{formatDateLabel(date)}</Text>
-            ) : null}
+            {date ? <Text style={styles.dateLabel}>{formatDateLabel(date)}</Text> : null}
 
-            <TerminalInput
-              label="title"
+            <TextField
+              label="Title"
               value={title}
               onChangeText={(value) => {
                 setTitle(value);
                 if (error) setError(null);
               }}
-              placeholder="deploy payload"
-              error={Boolean(error)}
+              placeholder="e.g. Group presentation"
+              error={error}
+              autoFocus
               testID="event-title"
             />
-
-            <TerminalInput
-              label="details"
+            <TextField
+              label="Details (optional)"
               value={notes}
               onChangeText={(value) => setNotes(value.slice(0, MAX_NOTES_LENGTH))}
-              placeholder="optional notes"
+              placeholder="Add a short note"
+              multiline
+              numberOfLines={3}
               testID="event-notes"
             />
 
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
             <View style={styles.actions}>
-              <TerminalButton
-                label="ADD EVENT"
+              <Button
+                label="Cancel"
+                variant="secondary"
+                onPress={onClose}
+                disabled={submitting}
+                style={styles.action}
+              />
+              <Button
+                label="Add event"
                 onPress={handleSubmit}
                 loading={submitting}
                 disabled={submitting || title.trim().length === 0}
+                style={styles.action}
                 testID="event-submit"
-              />
-              <TerminalButton
-                label="Cancel"
-                variant="ghost"
-                onPress={onClose}
-                disabled={submitting}
-                style={styles.cancel}
               />
             </View>
           </View>
@@ -130,56 +129,50 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: colors.overlay,
+    alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
   },
   box: {
-    backgroundColor: colors.background,
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 0,
-    padding: spacing.lg,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    padding: spacing.xl,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingBottom: spacing.md,
+    marginBottom: spacing.md,
   },
   title: {
-    color: colors.primary,
-    fontFamily: fonts.mono,
+    color: colors.text,
+    fontFamily: fonts.sans,
     fontSize: fontSizes.lg,
-    letterSpacing: 3,
+    fontWeight: '700',
   },
   close: {
-    color: colors.error,
-    fontFamily: fonts.mono,
+    color: colors.textSecondary,
     fontSize: fontSizes.md,
-    letterSpacing: 2,
   },
   dateLabel: {
-    color: colors.textDim,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.sm,
-    letterSpacing: 1,
-    marginTop: spacing.md,
-  },
-  error: {
-    color: colors.error,
+    color: colors.textMuted,
     fontFamily: fonts.mono,
     fontSize: fontSizes.xs,
     letterSpacing: 1,
-    marginTop: -spacing.sm,
-    marginBottom: spacing.md,
+    textTransform: 'uppercase',
+    marginBottom: spacing.lg,
   },
   actions: {
-    gap: spacing.md,
-    marginTop: spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
-  cancel: {
-    marginTop: 0,
+  action: {
+    minWidth: 110,
   },
 });

@@ -2,14 +2,13 @@ import { Link, Redirect } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { BlinkingCursor } from '@/components/blinking-cursor';
 import { ScreenContainer } from '@/components/screen-container';
-import { TerminalButton } from '@/components/terminal-button';
-import { TerminalInput } from '@/components/terminal-input';
-import { TypewriterText } from '@/components/typewriter-text';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { TextField } from '@/components/ui/text-field';
 import { useAuth } from '@/context/auth-context';
 import { logIn } from '@/services/auth';
-import { colors, fontSizes, fonts, spacing } from '@/theme';
+import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 import { mapAuthError } from '@/utils/errors';
 import { validateEmail, validatePassword } from '@/utils/validation';
 
@@ -35,14 +34,12 @@ export default function LoginScreen() {
     setPasswordError(nextPasswordError);
     setServerError(null);
 
-    if (nextEmailError || nextPasswordError) {
-      return;
-    }
+    if (nextEmailError || nextPasswordError) return;
 
     setSubmitting(true);
     try {
       await logIn(email.trim(), password);
-      // onAuthStateChanged in AuthProvider redirects on success.
+      // AuthProvider redirects on success.
     } catch (error) {
       setServerError(mapAuthError(error));
     } finally {
@@ -52,73 +49,65 @@ export default function LoginScreen() {
 
   return (
     <ScreenContainer contentStyle={styles.content}>
-      <View style={styles.header}>
-        <View style={styles.logoRow}>
-          <TypewriterText
-            text=">_ NULLSEC"
-            speed={80}
-            style={styles.logo}
-          />
-          <BlinkingCursor style={styles.logo} />
+      <View style={styles.column}>
+        <View style={styles.brandBlock}>
+          <View style={styles.brandRow}>
+            <View style={styles.brandMark} />
+            <Text style={styles.brand}>NULLSEC</Text>
+          </View>
+          <Text style={styles.brandSub}>Class Network</Text>
         </View>
-        <Text style={styles.subtitle}>SECURE TERMINAL ACCESS</Text>
-        <Text style={styles.divider}>{'// AUTHENTICATION REQUIRED'}</Text>
-      </View>
 
-      <View style={styles.form}>
-        <View key="email">
-          <TerminalInput
-            label="identity"
+        <Card title="Sign in" subtitle="Access your class workspace">
+          <TextField
+            label="Email"
             value={email}
             onChangeText={setEmail}
-            placeholder="user@nullsec.io"
+            placeholder="you@school.edu"
             keyboardType="email-address"
-            error={Boolean(emailError)}
+            autoComplete="email"
+            error={emailError}
             returnKeyType="next"
             testID="login-email"
           />
-          {emailError ? <Text style={styles.fieldError}>{emailError}</Text> : null}
-        </View>
-
-        <View key="password">
-          <TerminalInput
-            label="passphrase"
+          <TextField
+            label="Password"
             value={password}
             onChangeText={setPassword}
-            placeholder="********"
+            placeholder="Your password"
             secureTextEntry
-            error={Boolean(passwordError)}
+            autoComplete="password"
+            error={passwordError}
             returnKeyType="go"
             onSubmitEditing={handleLogin}
             testID="login-password"
           />
-          {passwordError ? (
-            <Text style={styles.fieldError}>{passwordError}</Text>
+
+          {serverError ? (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{serverError}</Text>
+            </View>
           ) : null}
+
+          <Button
+            label="Sign in"
+            onPress={handleLogin}
+            loading={submitting}
+            disabled={submitting}
+            testID="login-submit"
+          />
+
+          <Link href="/(auth)/forgot-password" style={styles.forgot}>
+            Forgot password?
+          </Link>
+        </Card>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>New here?</Text>
+          <Link href="/(auth)/signup" style={styles.footerLink}>
+            Create an account
+          </Link>
         </View>
-
-        {serverError ? (
-          <View key="server" style={styles.serverError}>
-            <Text style={styles.serverErrorText}>{serverError}</Text>
-          </View>
-        ) : null}
-
-        <TerminalButton
-          key="submit"
-          label="LOGIN"
-          onPress={handleLogin}
-          loading={submitting}
-          disabled={submitting}
-          style={styles.button}
-          testID="login-submit"
-        />
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>NO ACTIVE SESSION?</Text>
-        <Link href="/(auth)/signup" style={styles.footerLink}>
-          CREATE ACCOUNT
-        </Link>
       </View>
     </ScreenContainer>
   );
@@ -128,79 +117,75 @@ const styles = StyleSheet.create({
   content: {
     justifyContent: 'center',
   },
-  header: {
-    marginBottom: spacing.xxl,
+  column: {
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
   },
-  logoRow: {
+  brandBlock: {
+    marginBottom: spacing.xl,
+  },
+  brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
   },
-  logo: {
-    color: colors.primary,
+  brandMark: {
+    width: 14,
+    height: 14,
+    backgroundColor: colors.accent,
+    borderRadius: radii.sm,
+  },
+  brand: {
+    color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: fontSizes.xxl,
+    fontSize: fontSizes.xl,
+    fontWeight: '700',
     letterSpacing: 4,
   },
-  subtitle: {
+  brandSub: {
     color: colors.textMuted,
     fontFamily: fonts.mono,
     fontSize: fontSizes.sm,
-    letterSpacing: 4,
-    marginTop: spacing.sm,
+    letterSpacing: 2,
+    marginTop: spacing.xs,
   },
-  divider: {
-    color: colors.textMuted,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    letterSpacing: 1,
-    marginTop: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: spacing.md,
-  },
-  form: {
-    marginBottom: spacing.xl,
-  },
-  fieldError: {
-    color: colors.error,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    letterSpacing: 1,
-    marginTop: -spacing.md,
-    marginBottom: spacing.lg,
-  },
-  serverError: {
+  errorBanner: {
+    backgroundColor: colors.errorDim,
     borderWidth: 1,
-    borderColor: colors.error,
+    borderColor: colors.danger,
+    borderRadius: radii.sm,
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
-  serverErrorText: {
-    color: colors.error,
-    fontFamily: fonts.mono,
+  errorText: {
+    color: colors.danger,
+    fontFamily: fonts.sans,
     fontSize: fontSizes.sm,
-    letterSpacing: 1,
   },
-  button: {
-    marginTop: spacing.sm,
+  forgot: {
+    color: colors.accentStrong,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.sm,
+    marginTop: spacing.lg,
+    alignSelf: 'center',
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
+    marginTop: spacing.xl,
   },
   footerText: {
-    color: colors.textMuted,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    letterSpacing: 1,
+    color: colors.textSecondary,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.sm,
   },
   footerLink: {
-    color: colors.primary,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    letterSpacing: 1,
-    textDecorationLine: 'underline',
+    color: colors.accentStrong,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.sm,
+    fontWeight: '600',
   },
 });

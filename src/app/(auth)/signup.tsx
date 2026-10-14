@@ -3,12 +3,13 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenContainer } from '@/components/screen-container';
-import { TerminalButton } from '@/components/terminal-button';
-import { TerminalInput } from '@/components/terminal-input';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { TextField } from '@/components/ui/text-field';
 import { TermsModal } from '@/components/terms-modal';
 import { useAuth } from '@/context/auth-context';
 import { signUp } from '@/services/auth';
-import { colors, fontSizes, fonts, spacing } from '@/theme';
+import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 import { mapAuthError } from '@/utils/errors';
 import {
   validateConfirmPassword,
@@ -17,18 +18,18 @@ import {
   validateUsername,
 } from '@/utils/validation';
 
-type Field = 'username' | 'email' | 'password' | 'confirm';
+type Field = 'name' | 'email' | 'password' | 'confirm';
 
 export default function SignUpScreen() {
   const { user } = useAuth();
-  const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [termsVisible, setTermsVisible] = useState(false);
   const [touched, setTouched] = useState<Record<Field, boolean>>({
-    username: false,
+    name: false,
     email: false,
     password: false,
     confirm: false,
@@ -39,15 +40,15 @@ export default function SignUpScreen() {
 
   const errors = useMemo(
     () => ({
-      username: validateUsername(username),
+      name: validateUsername(name),
       email: validateEmail(email),
       password: validatePassword(password),
       confirm: validateConfirmPassword(password, confirmPassword),
     }),
-    [username, email, password, confirmPassword],
+    [name, email, password, confirmPassword],
   );
 
-  const formValid = !errors.username && !errors.email && !errors.password && !errors.confirm;
+  const formValid = !errors.name && !errors.email && !errors.password && !errors.confirm;
   const canSubmit = formValid && acceptedTerms && !submitting;
 
   const showError = (field: Field): string | null =>
@@ -63,18 +64,15 @@ export default function SignUpScreen() {
 
   async function handleCreateAccount() {
     if (submitting) return;
-
     setSubmitAttempted(true);
     setServerError(null);
 
-    if (!formValid || !acceptedTerms) {
-      return;
-    }
+    if (!formValid || !acceptedTerms) return;
 
     setSubmitting(true);
     try {
-      await signUp(email.trim(), password, username.trim());
-      // onAuthStateChanged redirects on success.
+      await signUp(email.trim(), password, name.trim());
+      // AuthProvider redirects on success.
     } catch (error) {
       setServerError(mapAuthError(error));
     } finally {
@@ -84,131 +82,118 @@ export default function SignUpScreen() {
 
   return (
     <ScreenContainer contentStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{'>_ REGISTER'}</Text>
-        <Text style={styles.divider}>{'// NEW OPERATOR ENROLLMENT'}</Text>
-      </View>
-
-      <View style={styles.form}>
-        <View key="username">
-          <TerminalInput
-            label="callsign"
-            value={username}
-            onChangeText={setUsername}
-            onBlur={() => markTouched('username')}
-            placeholder="agent_zero"
-            error={Boolean(showError('username'))}
-            testID="signup-username"
-          />
-          {showError('username') ? (
-            <Text style={styles.fieldError}>{showError('username')}</Text>
-          ) : null}
+      <View style={styles.column}>
+        <View style={styles.brandBlock}>
+          <View style={styles.brandRow}>
+            <View style={styles.brandMark} />
+            <Text style={styles.brand}>NULLSEC</Text>
+          </View>
+          <Text style={styles.brandSub}>Create your class account</Text>
         </View>
 
-        <View key="email">
-          <TerminalInput
-            label="identity"
+        <Card title="Create account">
+          <TextField
+            label="Full name"
+            value={name}
+            onChangeText={setName}
+            onBlur={() => markTouched('name')}
+            placeholder="Jane Doe"
+            autoComplete="name"
+            autoCapitalize="words"
+            error={showError('name')}
+            testID="signup-name"
+          />
+          <TextField
+            label="Email"
             value={email}
             onChangeText={setEmail}
             onBlur={() => markTouched('email')}
-            placeholder="user@nullsec.io"
+            placeholder="you@school.edu"
             keyboardType="email-address"
-            error={Boolean(showError('email'))}
+            autoComplete="email"
+            error={showError('email')}
             testID="signup-email"
           />
-          {showError('email') ? (
-            <Text style={styles.fieldError}>{showError('email')}</Text>
-          ) : null}
-        </View>
-
-        <View key="password">
-          <TerminalInput
-            label="passphrase"
+          <TextField
+            label="Password"
             value={password}
             onChangeText={setPassword}
             onBlur={() => markTouched('password')}
-            placeholder="********"
+            placeholder="At least 6 characters"
             secureTextEntry
-            error={Boolean(showError('password'))}
+            autoComplete="new-password"
+            error={showError('password')}
             testID="signup-password"
           />
-          {showError('password') ? (
-            <Text style={styles.fieldError}>{showError('password')}</Text>
-          ) : null}
-        </View>
-
-        <View key="confirm">
-          <TerminalInput
-            label="confirm passphrase"
+          <TextField
+            label="Confirm password"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             onBlur={() => markTouched('confirm')}
-            placeholder="********"
+            placeholder="Re-enter your password"
             secureTextEntry
-            error={Boolean(showError('confirm'))}
+            autoComplete="new-password"
+            error={showError('confirm')}
             onSubmitEditing={handleCreateAccount}
             testID="signup-confirm"
           />
-          {showError('confirm') ? (
-            <Text style={styles.fieldError}>{showError('confirm')}</Text>
-          ) : null}
-        </View>
 
-        <Pressable
-          key="terms"
-          style={styles.termsRow}
-          onPress={() => setAcceptedTerms((prev) => !prev)}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: acceptedTerms }}
-          testID="signup-terms-checkbox"
-        >
-          <Text style={styles.checkbox}>
-            {acceptedTerms ? '[X]' : '[ ]'}
-          </Text>
-          <Text style={styles.termsText}>
-            I have read and agree to the{' '}
-            <Text
-              style={styles.termsLink}
-              onPress={() => setTermsVisible(true)}
-              suppressHighlighting
-            >
-              Terms &amp; Conditions
+          <Pressable
+            style={styles.termsRow}
+            onPress={() => setAcceptedTerms((prev) => !prev)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: acceptedTerms }}
+            testID="signup-terms-checkbox"
+          >
+            <View style={[styles.checkbox, acceptedTerms && styles.checkboxOn]}>
+              {acceptedTerms ? <Text style={styles.checkmark}>{'\u2713'}</Text> : null}
+            </View>
+            <Text style={styles.termsText}>
+              I have read and agree to the{' '}
+              <Text
+                style={styles.termsLink}
+                onPress={() => setTermsVisible(true)}
+                suppressHighlighting
+              >
+                Terms &amp; Conditions
+              </Text>
+              .
             </Text>
-          </Text>
-        </Pressable>
+          </Pressable>
 
-        {serverError ? (
-          <View key="server" style={styles.serverError}>
-            <Text style={styles.serverErrorText}>{serverError}</Text>
-          </View>
-        ) : null}
+          {serverError ? (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{serverError}</Text>
+            </View>
+          ) : null}
 
-        <TerminalButton
-          key="submit"
-          label="CREATE ACCOUNT"
-          onPress={handleCreateAccount}
-          disabled={!canSubmit}
-          loading={submitting}
-          style={styles.button}
-          testID="signup-submit"
+          <Button
+            label="Create account"
+            onPress={handleCreateAccount}
+            disabled={!canSubmit}
+            loading={submitting}
+            testID="signup-submit"
+          />
+        </Card>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Already have an account?</Text>
+          <Link href="/(auth)/login" style={styles.footerLink}>
+            Sign in
+          </Link>
+        </View>
+      </View>
+
+      {termsVisible ? (
+        <TermsModal
+          visible
+          onAccept={() => {
+            setAcceptedTerms(true);
+            setTermsVisible(false);
+          }}
+          onClose={() => setTermsVisible(false)}
         />
-      </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>ALREADY ENROLLED?</Text>
-        <Link href="/(auth)/login" style={styles.footerLink}>
-          LOGIN
-        </Link>
-      </View>
-
-      <TermsModal
-        visible={termsVisible}
-        onAccept={() => {
-          setAcceptedTerms(true);
-          setTermsVisible(false);
-        }}
-        onClose={() => setTermsVisible(false)}
-      />
+      ) : null}
     </ScreenContainer>
   );
 }
@@ -217,92 +202,103 @@ const styles = StyleSheet.create({
   content: {
     justifyContent: 'center',
   },
-  header: {
+  column: {
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
+  },
+  brandBlock: {
     marginBottom: spacing.xl,
   },
-  title: {
-    color: colors.primary,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  brandMark: {
+    width: 14,
+    height: 14,
+    backgroundColor: colors.accent,
+    borderRadius: radii.sm,
+  },
+  brand: {
+    color: colors.text,
     fontFamily: fonts.mono,
-    fontSize: fontSizes.xxl,
+    fontSize: fontSizes.xl,
+    fontWeight: '700',
     letterSpacing: 4,
   },
-  divider: {
+  brandSub: {
     color: colors.textMuted,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    letterSpacing: 1,
-    marginTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingTop: spacing.md,
-  },
-  form: {
-    marginBottom: spacing.xl,
-  },
-  fieldError: {
-    color: colors.error,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    letterSpacing: 1,
-    marginTop: -spacing.md,
-    marginBottom: spacing.lg,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.sm,
+    marginTop: spacing.xs,
   },
   termsRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.sm,
-    marginTop: spacing.sm,
     marginBottom: spacing.lg,
   },
   checkbox: {
-    color: colors.primary,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.md,
-    letterSpacing: 1,
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  checkboxOn: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  checkmark: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: '700',
   },
   termsText: {
     flex: 1,
-    color: colors.textDim,
-    fontFamily: fonts.mono,
+    color: colors.textSecondary,
+    fontFamily: fonts.sans,
     fontSize: fontSizes.sm,
     lineHeight: 20,
   },
   termsLink: {
-    color: colors.primary,
-    textDecorationLine: 'underline',
+    color: colors.accentStrong,
+    fontWeight: '600',
   },
-  serverError: {
+  errorBanner: {
+    backgroundColor: colors.errorDim,
     borderWidth: 1,
-    borderColor: colors.error,
+    borderColor: colors.danger,
+    borderRadius: radii.sm,
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
-  serverErrorText: {
-    color: colors.error,
-    fontFamily: fonts.mono,
+  errorText: {
+    color: colors.danger,
+    fontFamily: fonts.sans,
     fontSize: fontSizes.sm,
-    letterSpacing: 1,
-  },
-  button: {
-    marginTop: spacing.sm,
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
+    marginTop: spacing.xl,
   },
   footerText: {
-    color: colors.textMuted,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    letterSpacing: 1,
+    color: colors.textSecondary,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.sm,
   },
   footerLink: {
-    color: colors.primary,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    letterSpacing: 1,
-    textDecorationLine: 'underline',
+    color: colors.accentStrong,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.sm,
+    fontWeight: '600',
   },
 });

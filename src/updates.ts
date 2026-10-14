@@ -19,12 +19,12 @@ export type UpdateCheckResult = {
  */
 export const UPDATE_MESSAGES: Record<UpdatePhase, string> = {
   idle: '',
-  checking: 'SCANNING FOR UPDATES...',
-  downloading: 'DOWNLOADING PATCH...',
-  restarting: 'UPDATE AVAILABLE - RESTARTING...',
-  'up-to-date': 'SYSTEM UP TO DATE',
-  disabled: 'UPDATES DISABLED (DEV MODE)',
-  error: 'ERROR: UPDATE CHANNEL UNREACHABLE',
+  checking: 'Checking for updates…',
+  downloading: 'Downloading update…',
+  restarting: 'Update ready — restarting…',
+  'up-to-date': "You're on the latest version.",
+  disabled: 'Updates are available in installed builds only.',
+  error: 'Could not reach the update server.',
 };
 
 /**

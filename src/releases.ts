@@ -14,21 +14,21 @@ export const RELEASES: Release[] = [
   {
     version: '1.0.1',
     date: '2026-10-14',
-    title: 'PATCH // CARET INTEGRITY',
+    title: 'Refreshed interface',
     notes: [
-      'Fixed a TextInput glitch that dropped keystrokes after validation errors.',
-      'Terminal cursor now occupies a fixed slot — no more input jitter.',
-      'Added release notifications and a code-rain boot sequence.',
+      'New clean, light design across every screen.',
+      'Rebuilt sign-in, sign-up and home.',
+      'Attendance calendar with event planning.',
     ],
   },
   {
     version: '1.0.0',
     date: '2026-10-13',
-    title: 'INITIAL BREACH',
+    title: 'Welcome to NullSec',
     notes: [
-      'Email/password auth with persistent sessions.',
-      'Firestore profile records with self-only security rules.',
-      'Hacker terminal theme + Share Tech Mono.',
+      'Email and password accounts with persistent sessions.',
+      'Private profile records protected by security rules.',
+      'Attendance calendar foundation.',
     ],
   },
 ];

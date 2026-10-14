@@ -19,7 +19,10 @@ type ScreenContainerProps = {
   testID?: string;
 };
 
-/** Black canvas + safe area + keyboard avoidance for all screens. */
+/**
+ * Light ctOS canvas: safe area + keyboard avoidance + a centered content column
+ * that stays readable on wide web/tablet layouts.
+ */
 export function ScreenContainer({
   children,
   scroll = true,
@@ -60,7 +63,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingHorizontal: spacing.xl,
+    width: '100%',
+    maxWidth: 1180,
+    alignSelf: 'center',
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xl,
     backgroundColor: colors.background,
   },

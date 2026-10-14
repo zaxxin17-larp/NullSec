@@ -1,6 +1,7 @@
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   updateProfile,
@@ -47,6 +48,11 @@ export async function logIn(email: string, password: string): Promise<User> {
 /** Sign the current user out. */
 export async function logOut(): Promise<void> {
   await firebaseSignOut(auth);
+}
+
+/** Send a password-reset email. Firebase does not reveal whether the account exists. */
+export async function sendPasswordReset(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
 }
 
 /** Subscribe to auth state changes. Returns the unsubscribe function. */

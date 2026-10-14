@@ -10,9 +10,9 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { colors, fontSizes, fonts, glowShadow, spacing } from '@/theme';
+import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 
-type TerminalInputProps = {
+type TextFieldProps = {
   label?: string;
   value: string;
   onChangeText: (value: string) => void;
@@ -20,10 +20,14 @@ type TerminalInputProps = {
   secureTextEntry?: boolean;
   keyboardType?: KeyboardTypeOptions;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  autoComplete?: 'email' | 'password' | 'username' | 'name' | 'off';
+  autoComplete?: TextInputProps['autoComplete'];
   textContentType?: TextInputProps['textContentType'];
-  error?: boolean;
+  error?: string | null;
   editable?: boolean;
+  multiline?: boolean;
+  numberOfLines?: number;
+  maxLength?: number;
+  autoFocus?: boolean;
   returnKeyType?: 'done' | 'go' | 'next' | 'send';
   onSubmitEditing?: () => void;
   onFocus?: () => void;
@@ -32,7 +36,7 @@ type TerminalInputProps = {
   testID?: string;
 };
 
-export function TerminalInput({
+export function TextField({
   label,
   value,
   onChangeText,
@@ -42,48 +46,44 @@ export function TerminalInput({
   autoCapitalize = 'none',
   autoComplete = 'off',
   textContentType,
-  error = false,
+  error = null,
   editable = true,
+  multiline = false,
+  numberOfLines,
+  maxLength,
+  autoFocus,
   returnKeyType,
   onSubmitEditing,
   onFocus,
   onBlur,
   style,
   testID,
-}: TerminalInputProps) {
+}: TextFieldProps) {
   const [focused, setFocused] = useState(false);
-  const [defaultValue] = useState(() => value);
 
   const borderColor = error
-    ? colors.error
+    ? colors.danger
     : focused
-      ? colors.borderFocus
+      ? colors.accent
       : colors.border;
 
   return (
     <View style={[styles.wrapper, style]}>
       {label ? (
-        <Text style={[styles.label, error && styles.labelError]}>{label}</Text>
+        <Text style={[styles.label, error ? styles.labelError : null]}>
+          {label}
+        </Text>
       ) : null}
+
+      {/* collapsable={false}: keeps the native input from being re-created when
+          the wrapper's style changes on focus (RN New Architecture). */}
       <View
-        // collapsable={false} is required: this wrapper's style changes on focus
-        // (the glowShadow adds elevation/shadowColor), which otherwise makes
-        // Fabric recreate the native TextInput and drop focus mid-typing on
-        // Android/New Architecture. See facebook/react-native#45798.
         collapsable={false}
-        style={[
-          styles.box,
-          { borderColor },
-          focused && !error ? glowShadow : null,
-          error ? styles.boxError : null,
-        ]}
+        style={[styles.box, { borderColor }, multiline && styles.boxMultiline]}
       >
-        <Text style={styles.prompt}>{'>'}</Text>
         <TextInput
-          style={styles.input}
-          // True uncontrolled: use a constant defaultValue to avoid layout-effect
-          // resets that can drop characters when typing fast on Android/New Arch.
-          defaultValue={defaultValue}
+          style={[styles.input, multiline && styles.inputMultiline]}
+          value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={colors.textMuted}
@@ -94,9 +94,14 @@ export function TerminalInput({
           autoComplete={autoComplete}
           textContentType={textContentType}
           editable={editable}
-          // Android autofill (Google) glitches terminal-style fields while typing.
+          multiline={multiline}
+          numberOfLines={numberOfLines}
+          maxLength={maxLength}
+          autoFocus={autoFocus}
+          returnKeyType={returnKeyType}
+          onSubmitEditing={onSubmitEditing}
           importantForAutofill="no"
-          selectionColor={colors.primary}
+          selectionColor={colors.accent}
           underlineColorAndroid="transparent"
           onFocus={() => {
             setFocused(true);
@@ -106,11 +111,11 @@ export function TerminalInput({
             setFocused(false);
             onBlur?.();
           }}
-          onSubmitEditing={onSubmitEditing}
-          returnKeyType={returnKeyType}
           testID={testID}
         />
       </View>
+
+      {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
 }
@@ -120,47 +125,43 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   label: {
-    color: colors.textMuted,
+    color: colors.textSecondary,
     fontFamily: fonts.mono,
     fontSize: fontSizes.xs,
-    letterSpacing: 2,
+    letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: spacing.xs,
   },
   labelError: {
-    color: colors.error,
+    color: colors.danger,
   },
   box: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.inputBackground,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderRadius: 0,
+    borderRadius: radii.sm,
     paddingHorizontal: spacing.md,
-    minHeight: 50,
+    minHeight: 44,
+    justifyContent: 'center',
   },
-  boxError: {
-    backgroundColor: colors.errorDim,
-  },
-  prompt: {
-    color: colors.primary,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.md,
-    marginRight: spacing.sm,
+  boxMultiline: {
+    minHeight: 88,
+    paddingVertical: spacing.sm,
   },
   input: {
-    flex: 1,
-    height: 48,
-    color: colors.text,
-    // System monospace for the editable text. The custom Share Tech Mono font
-    // can desync the caret/IME on Android and make typing appear to glitch.
-    fontFamily: fonts.monoFallback,
+    fontFamily: fonts.sans,
     fontSize: fontSizes.md,
-    // No letterSpacing here: on Android it misplaces the caret and makes
-    // typed text appear to jitter / drop characters.
-    paddingVertical: 0,
-    paddingHorizontal: 0,
-    margin: 0,
-    textAlignVertical: 'center',
+    color: colors.text,
+    paddingVertical: spacing.sm,
+  },
+  inputMultiline: {
+    minHeight: 68,
+    textAlignVertical: 'top',
+  },
+  error: {
+    color: colors.danger,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
+    letterSpacing: 0.5,
+    marginTop: spacing.xs,
   },
 });

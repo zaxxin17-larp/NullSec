@@ -2,12 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { colors, fontSizes, fonts, spacing } from '@/theme';
 import { DISMISSED_RELEASE_KEY, LATEST_RELEASE } from '@/releases';
 
 /**
- * Themed notification card announcing the latest release. Stays dismissed until
- * a newer version appears in the local release feed.
+ * Release notes card. Stays dismissed until a newer version appears in the
+ * local release feed.
  */
 export function ReleaseNotification() {
   const [visible, setVisible] = useState(false);
@@ -26,9 +28,7 @@ export function ReleaseNotification() {
     };
   }, []);
 
-  if (!visible) {
-    return null;
-  }
+  if (!visible) return null;
 
   const dismiss = () => {
     setVisible(false);
@@ -38,97 +38,67 @@ export function ReleaseNotification() {
   };
 
   return (
-    <View style={styles.card} testID="release-notification">
-      <View style={styles.header}>
-        <Text style={styles.badge}>[ NEW RELEASE ]</Text>
+    <Card
+      testID="release-notification"
+      style={styles.card}
+      title={`What's new · v${LATEST_RELEASE.version}`}
+      headerAccessory={
         <Pressable
           onPress={dismiss}
           hitSlop={12}
           accessibilityRole="button"
-          accessibilityLabel="Dismiss release notification"
+          accessibilityLabel="Dismiss release notes"
         >
-          <Text style={styles.close}>[X]</Text>
+          <Text style={styles.close}>{'\u2715'}</Text>
         </Pressable>
-      </View>
-
-      <Text style={styles.version}>
-        v{LATEST_RELEASE.version} :: {LATEST_RELEASE.title}
-      </Text>
-
+      }
+    >
+      <Text style={styles.title}>{LATEST_RELEASE.title}</Text>
       <View style={styles.notes}>
         {LATEST_RELEASE.notes.map((note) => (
           <Text key={note} style={styles.note}>
-            {'> '}
+            {'\u2022  '}
             {note}
           </Text>
         ))}
       </View>
-
-      <Pressable
+      <Button
+        label="Got it"
+        variant="secondary"
+        size="sm"
         onPress={dismiss}
         style={styles.dismiss}
-        accessibilityRole="button"
-      >
-        <Text style={styles.dismissText}>ACKNOWLEDGE</Text>
-      </Pressable>
-    </View>
+      />
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderWidth: 1,
-    borderColor: colors.primary,
-    backgroundColor: colors.surface,
-    padding: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  badge: {
-    color: colors.primary,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    letterSpacing: 2,
+    marginBottom: spacing.lg,
   },
   close: {
-    color: colors.error,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.sm,
-    letterSpacing: 1,
+    color: colors.textMuted,
+    fontSize: fontSizes.md,
   },
-  version: {
+  title: {
     color: colors.text,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.sm,
-    letterSpacing: 1,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.md,
+    fontWeight: '600',
     marginBottom: spacing.sm,
   },
   notes: {
     gap: spacing.xs,
   },
   note: {
-    color: colors.textDim,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    lineHeight: 18,
-    letterSpacing: 0.5,
+    color: colors.textSecondary,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.sm,
+    lineHeight: 20,
   },
   dismiss: {
+    alignSelf: 'flex-start',
     marginTop: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-  },
-  dismissText: {
-    color: colors.textMuted,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    letterSpacing: 3,
   },
 });
