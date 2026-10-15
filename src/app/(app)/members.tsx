@@ -114,7 +114,6 @@ export default function MembersScreen() {
                   <Avatar
                     name={member.username}
                     size={36}
-                    seed={member.uid}
                     url={member.avatarUrl}
                     accent={member.accent}
                   />

@@ -1,57 +1,42 @@
 import {
   Image,
   StyleSheet,
+  Text,
   View,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
 
-import { colors, radii } from '@/theme';
+import { colors, fonts, radii } from '@/theme';
 
 type AvatarProps = {
   name: string;
   size?: number;
   style?: StyleProp<ViewStyle>;
   testID?: string;
-  /** Profile picture link. When set it replaces the generated identicon. */
+  /** Profile picture link. When set it fills the tile. */
   url?: string | null;
   /** Accent colour (`#rrggbb`). Falls back to the system cyan. */
   accent?: string | null;
-  /** Stable seed for the identicon (usually the uid). Defaults to `name`. */
-  seed?: string;
 };
 
-const GRID = 5;
+const HEX = /^#[0-9a-fA-F]{6}$/;
 
-/** Small deterministic hash so a user always gets the same identicon. */
-function hashSeed(input: string): number {
-  let hash = 2166136261;
-  for (let index = 0; index < input.length; index += 1) {
-    hash ^= input.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/** 5x5 mirrored block pattern derived from the seed (never fully empty). */
-function identicon(seed: string): boolean[] {
-  let state = hashSeed(seed) || 1;
-  const nextBit = (): boolean => {
-    state ^= state << 13;
-    state >>>= 0;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    state >>>= 0;
-    return (state & 1) === 1;
-  };
-
-  const cells: boolean[] = [];
-  for (let row = 0; row < GRID; row += 1) {
-    const left = [nextBit(), nextBit(), nextBit()];
-    cells.push(left[0], left[1], left[2], left[1], left[0]);
-  }
-  if (!cells.some(Boolean)) cells[Math.floor((GRID * GRID) / 2)] = true;
-  return cells;
+/** Pick readable text for a tile filled with `hex`. */
+function inkFor(hex: string): string {
+  const value = hex.slice(1);
+  const r = parseInt(value.slice(0, 2), 16) / 255;
+  const g = parseInt(value.slice(2, 4), 16) / 255;
+  const b = parseInt(value.slice(4, 6), 16) / 255;
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.6 ? colors.panel : colors.white;
 }
 
 export function Avatar({
@@ -61,39 +46,42 @@ export function Avatar({
   testID,
   url,
   accent,
-  seed,
 }: AvatarProps) {
-  const tint = accent && accent.trim() ? accent : colors.accent;
+  const tint =
+    accent && HEX.test(accent.trim()) ? accent.trim() : colors.cyan;
   const picture = url ? url.trim() : '';
 
   return (
     <View
       testID={testID}
-      accessibilityLabel={`${name} avatar`}
+      accessibilityLabel={name}
       style={[
         styles.base,
-        { width: size, height: size, borderColor: tint },
+        {
+          width: size,
+          height: size,
+          borderRadius: Math.max(radii.sm, size * 0.26),
+          backgroundColor: picture ? colors.panel : tint,
+          borderColor: picture ? tint : 'transparent',
+        },
         style,
       ]}
     >
       {picture ? (
-        <Image
-          source={{ uri: picture }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        <Image source={{ uri: picture }} style={styles.image} resizeMode="cover" />
       ) : (
-        <View style={styles.grid}>
-          {identicon(seed || name).map((on, index) => (
-            <View
-              key={index}
-              style={[
-                styles.cell,
-                { backgroundColor: on ? tint : 'transparent' },
-              ]}
-            />
-          ))}
-        </View>
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.text,
+            {
+              color: inkFor(tint),
+              fontSize: Math.max(11, Math.round(size * 0.4)),
+            },
+          ]}
+        >
+          {initialsOf(name)}
+        </Text>
       )}
     </View>
   );
@@ -101,22 +89,18 @@ export function Avatar({
 
 const styles = StyleSheet.create({
   base: {
-    backgroundColor: colors.panel,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
-    borderRadius: radii.sm,
     overflow: 'hidden',
-  },
-  grid: {
-    flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
   },
   image: {
     width: '100%',
     height: '100%',
   },
-  cell: {
-    width: `${100 / GRID}%`,
-    height: `${100 / GRID}%`,
+  text: {
+    fontFamily: fonts.mono,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

@@ -175,7 +175,6 @@ export default function SettingsScreen() {
           <Avatar
             name={trimmedName || email || '?'}
             size={46}
-            seed={uid}
             url={avatarUrl}
             accent={accent}
           />
@@ -219,14 +218,13 @@ export default function SettingsScreen() {
           <Avatar
             name={trimmedName || email || '?'}
             size={72}
-            seed={uid}
             url={avatarUrl}
             accent={accent}
           />
           <Text style={styles.avatarHint}>
             {avatarUrl
               ? 'Using your linked picture.'
-              : 'Generated from your operator ID.'}
+              : 'Your initials, coloured by the accent below.'}
           </Text>
         </View>
 

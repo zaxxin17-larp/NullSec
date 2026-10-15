@@ -246,7 +246,6 @@ export function TopNav() {
             name={name}
             size={30}
             testID="nav-avatar"
-            seed={uid}
             url={profile?.avatarUrl}
             accent={profile?.accent}
           />
