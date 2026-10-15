@@ -9,11 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader } from '@/components/ui/loader';
 import { StatusPill } from '@/components/ui/status-pill';
+import { useActivity } from '@/context/activity-context';
 import { useAuth } from '@/context/auth-context';
-import {
-  subscribeToAnnouncements,
-  type Announcement,
-} from '@/services/announcements';
 import {
   subscribeToAttendanceRange,
   type AttendanceDay,
@@ -52,7 +49,7 @@ export default function HomeScreen() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [attendanceDays, setAttendanceDays] = useState<AttendanceDay[]>([]);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const { items: activityItems } = useActivity();
   const [role, setRole] = useState<MemberRole>('student');
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
@@ -109,10 +106,10 @@ export default function HomeScreen() {
     return unsubscribe;
   }, [uid, monthStart, monthEnd]);
 
-  useEffect(() => {
-    const unsubscribe = subscribeToAnnouncements(setAnnouncements, () => {});
-    return unsubscribe;
-  }, []);
+  const announcements = useMemo(
+    () => activityItems.filter((item) => item.kind === 'announcement'),
+    [activityItems],
+  );
 
   const todayStatus = useMemo(() => {
     if (!uid) return undefined;
@@ -322,7 +319,11 @@ export default function HomeScreen() {
               online
               onPress={() => router.push('/(app)/messages')}
             />
-            <ModuleRow label="Notifications" online={false} />
+            <ModuleRow
+              label="Notifications"
+              online
+              onPress={() => router.push('/(app)/notifications')}
+            />
           </View>
         </Card>
 

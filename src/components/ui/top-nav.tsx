@@ -12,6 +12,7 @@ import { BlinkingCursor } from '@/components/blinking-cursor';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useActivity } from '@/context/activity-context';
 import { useAuth } from '@/context/auth-context';
 import { logOut } from '@/services/auth';
 import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { label: 'CLASSMATES', href: '/(app)/members', match: '/members' },
   { label: 'NOTICES', href: '/(app)/announcements', match: '/announcements' },
   { label: 'MESSAGES', href: '/(app)/messages', match: '/messages' },
+  { label: 'ALERTS', href: '/(app)/notifications', match: '/notifications' },
 ] as const;
 
 const WIDE_BREAKPOINT = 820;
@@ -32,6 +34,7 @@ function formatClock(date: Date): string {
 
 export function TopNav() {
   const { user } = useAuth();
+  const { unreadCount } = useActivity();
   const router = useRouter();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
@@ -101,11 +104,18 @@ export function TopNav() {
                     style={styles.navItem}
                     testID={`nav-${item.match.replace('/', '')}`}
                   >
-                    <Text
-                      style={[styles.navLabel, active && styles.navLabelActive]}
-                    >
-                      {item.label}
-                    </Text>
+                    <View style={styles.navItemInner}>
+                      <Text
+                        style={[styles.navLabel, active && styles.navLabelActive]}
+                      >
+                        {item.label}
+                      </Text>
+                      {item.match === '/notifications' && unreadCount > 0 ? (
+                        <Text style={styles.navBadge}>
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </Text>
+                      ) : null}
+                    </View>
                     {active ? <View style={styles.navUnderline} /> : null}
                   </Pressable>
                 );
@@ -168,6 +178,9 @@ export function TopNav() {
                   style={[styles.mobileLabel, active && styles.mobileLabelActive]}
                 >
                   {item.label}
+                  {item.match === '/notifications' && unreadCount > 0
+                    ? `  (${unreadCount})`
+                    : ''}
                 </Text>
               </Pressable>
             );
@@ -270,6 +283,22 @@ const styles = StyleSheet.create({
   navItem: {
     paddingVertical: spacing.sm,
     alignItems: 'center',
+  },
+  navItemInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  navBadge: {
+    color: colors.panel,
+    backgroundColor: colors.cyan,
+    fontFamily: fonts.mono,
+    fontSize: 9,
+    letterSpacing: 0.5,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: radii.pill,
+    overflow: 'hidden',
   },
   navLabel: {
     color: colors.inkDim,

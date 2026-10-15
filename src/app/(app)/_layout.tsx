@@ -3,24 +3,27 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 
 import { TopNav } from '@/components/ui/top-nav';
+import { ActivityProvider } from '@/context/activity-context';
 import { colors } from '@/theme';
 
 /** Shared shell for all signed-in screens: persistent horizontal top nav. */
 export default function AppLayout() {
   return (
-    <View style={styles.root}>
-      <StatusBar style="light" />
-      <TopNav />
-      <View style={styles.body}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-            animation: 'fade',
-          }}
-        />
+    <ActivityProvider>
+      <View style={styles.root}>
+        <StatusBar style="light" />
+        <TopNav />
+        <View style={styles.body}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+              animation: 'fade',
+            }}
+          />
+        </View>
       </View>
-    </View>
+    </ActivityProvider>
   );
 }
 
