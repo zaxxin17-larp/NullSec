@@ -8,8 +8,9 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
+import { useTopInsetHandled } from '@/context/chrome-context';
 import { colors, spacing } from '@/theme';
 
 type ScreenContainerProps = {
@@ -29,8 +30,13 @@ export function ScreenContainer({
   contentStyle,
   testID,
 }: ScreenContainerProps) {
+  const topInsetHandled = useTopInsetHandled();
+  const edges: Edge[] = topInsetHandled
+    ? ['left', 'right', 'bottom']
+    : ['top', 'left', 'right', 'bottom'];
+
   return (
-    <SafeAreaView style={styles.safe} testID={testID}>
+    <SafeAreaView style={styles.safe} edges={edges} testID={testID}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

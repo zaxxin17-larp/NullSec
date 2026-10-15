@@ -1,12 +1,16 @@
 import { usePathname, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  Animated,
+  Easing,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BlinkingCursor } from '@/components/blinking-cursor';
 import { Avatar } from '@/components/ui/avatar';
@@ -27,9 +31,100 @@ const NAV_ITEMS = [
 ] as const;
 
 const WIDE_BREAKPOINT = 820;
+const BAR_HEIGHT = 58;
 
 function formatClock(date: Date): string {
   return date.toTimeString().slice(0, 8);
+}
+
+/** Overlapping pulse ring for the "online" indicator. */
+function PulseDot() {
+  const anim = useMemo(() => new Animated.Value(0), []);
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 1800,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [anim]);
+
+  const scale = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 2.4] });
+  const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0] });
+
+  return (
+    <View style={styles.statusWrap}>
+      <Animated.View
+        style={[styles.statusRing, { opacity, transform: [{ scale }] }]}
+      />
+      <View style={styles.statusDot} />
+    </View>
+  );
+}
+
+/** Hamburger that morphs into a close "X" — drawn with views (no font glyphs). */
+function MenuGlyph({ open }: { open: boolean }) {
+  const anim = useMemo(() => new Animated.Value(0), []);
+
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: open ? 1 : 0,
+      duration: 220,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [anim, open]);
+
+  const topStyle = {
+    transform: [
+      { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, 6] }) },
+      { rotate: anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] }) },
+    ],
+  };
+  const bottomStyle = {
+    transform: [
+      { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }) },
+      { rotate: anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-45deg'] }) },
+    ],
+  };
+  const middleStyle = {
+    opacity: anim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [1, 0, 0] }),
+  };
+
+  return (
+    <View style={styles.glyph}>
+      <Animated.View style={[styles.glyphBar, topStyle]} />
+      <Animated.View style={[styles.glyphBar, middleStyle]} />
+      <Animated.View style={[styles.glyphBar, bottomStyle]} />
+    </View>
+  );
+}
+
+/** Active tab underline that grows in when a route becomes active. */
+function NavUnderline() {
+  const anim = useMemo(() => new Animated.Value(0), []);
+
+  useEffect(() => {
+    const animation = Animated.timing(anim, {
+      toValue: 1,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [anim]);
+
+  return (
+    <Animated.View
+      style={[styles.navUnderline, { opacity: anim, transform: [{ scaleX: anim }] }]}
+    />
+  );
 }
 
 export function TopNav() {
@@ -38,17 +133,30 @@ export function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const isWide = width >= WIDE_BREAKPOINT;
+  const showClock = width >= 520;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [clock, setClock] = useState(() => formatClock(new Date()));
 
+  const menuAnim = useMemo(() => new Animated.Value(0), []);
+
   useEffect(() => {
     const timer = setInterval(() => setClock(formatClock(new Date())), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    Animated.timing(menuAnim, {
+      toValue: menuOpen ? 1 : 0,
+      duration: 190,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [menuAnim, menuOpen]);
 
   const name = user?.displayName?.trim() || user?.email || 'OPERATOR';
 
@@ -71,8 +179,13 @@ export function TopNav() {
     }
   }
 
+  const menuTranslate = menuAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-12, 0],
+  });
+
   return (
-    <View style={styles.header} testID="top-nav">
+    <View style={[styles.header, { paddingTop: insets.top }]} testID="top-nav">
       <View style={styles.bar}>
         <View style={styles.left}>
           <Pressable
@@ -116,7 +229,7 @@ export function TopNav() {
                         </Text>
                       ) : null}
                     </View>
-                    {active ? <View style={styles.navUnderline} /> : null}
+                    {active ? <NavUnderline /> : null}
                   </Pressable>
                 );
               })}
@@ -125,10 +238,10 @@ export function TopNav() {
         </View>
 
         <View style={styles.right}>
-          <Text style={styles.clock}>{clock}</Text>
+          {showClock ? <Text style={styles.clock}>{clock}</Text> : null}
 
           <View style={styles.status}>
-            <View style={styles.statusDot} />
+            <PulseDot />
             {isWide ? <Text style={styles.statusText}>ONLINE</Text> : null}
           </View>
 
@@ -149,11 +262,12 @@ export function TopNav() {
               onPress={() => setMenuOpen((prev) => !prev)}
               accessibilityRole="button"
               accessibilityLabel="Toggle navigation menu"
+              accessibilityState={{ expanded: menuOpen }}
               hitSlop={8}
               style={styles.menuButton}
               testID="nav-menu"
             >
-              <Text style={styles.menuGlyph}>{menuOpen ? '\u2715' : '\u2630'}</Text>
+              <MenuGlyph open={menuOpen} />
             </Pressable>
           )}
         </View>
@@ -161,43 +275,76 @@ export function TopNav() {
 
       <View style={styles.scanline} />
 
-      {!isWide && menuOpen ? (
-        <View style={styles.mobileMenu}>
-          {NAV_ITEMS.map((item) => {
-            const active = isActive(item.match);
-            return (
-              <Pressable
-                key={item.href}
-                onPress={() => navigate(item.href)}
-                accessibilityRole="link"
-                accessibilityState={{ selected: active }}
-                style={[styles.mobileItem, active && styles.mobileItemActive]}
-                testID={`nav-mobile-${item.match.replace('/', '')}`}
-              >
-                <Text
-                  style={[styles.mobileLabel, active && styles.mobileLabelActive]}
-                >
-                  {item.label}
-                  {item.match === '/notifications' && unreadCount > 0
-                    ? `  (${unreadCount})`
-                    : ''}
-                </Text>
-              </Pressable>
-            );
-          })}
+      <Modal
+        visible={!isWide && menuOpen}
+        transparent
+        animationType="none"
+        onRequestClose={() => setMenuOpen(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.menuOverlay}>
           <Pressable
-            onPress={() => {
-              setMenuOpen(false);
-              setConfirmSignOut(true);
-            }}
+            style={styles.menuBackdrop}
+            onPress={() => setMenuOpen(false)}
             accessibilityRole="button"
-            style={styles.mobileItem}
-            testID="nav-mobile-signout"
+            accessibilityLabel="Close menu"
+          />
+          <Animated.View
+            style={[
+              styles.mobileMenu,
+              {
+                top: insets.top + BAR_HEIGHT + 1,
+                opacity: menuAnim,
+                transform: [{ translateY: menuTranslate }],
+              },
+            ]}
           >
-            <Text style={[styles.mobileLabel, styles.mobileSignOut]}>SIGN OUT</Text>
-          </Pressable>
+            <Text style={styles.menuHeading}>NAVIGATION</Text>
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(item.match);
+              return (
+                <Pressable
+                  key={item.href}
+                  onPress={() => navigate(item.href)}
+                  accessibilityRole="link"
+                  accessibilityState={{ selected: active }}
+                  style={[styles.mobileItem, active && styles.mobileItemActive]}
+                  testID={`nav-mobile-${item.match.replace('/', '')}`}
+                >
+                  <View
+                    style={[
+                      styles.mobileBullet,
+                      active && styles.mobileBulletActive,
+                    ]}
+                  />
+                  <Text
+                    style={[styles.mobileLabel, active && styles.mobileLabelActive]}
+                  >
+                    {item.label}
+                  </Text>
+                  {item.match === '/notifications' && unreadCount > 0 ? (
+                    <Text style={styles.mobileCount}>{unreadCount}</Text>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+            <View style={styles.mobileDivider} />
+            <Pressable
+              onPress={() => {
+                setMenuOpen(false);
+                setConfirmSignOut(true);
+              }}
+              accessibilityRole="button"
+              style={styles.mobileItem}
+              testID="nav-mobile-signout"
+            >
+              <View style={styles.mobileBullet} />
+              <Text style={[styles.mobileLabel, styles.mobileSignOut]}>SIGN OUT</Text>
+            </Pressable>
+          </Animated.View>
         </View>
-      ) : null}
+      </Modal>
+
 
       <ConfirmDialog
         visible={confirmSignOut}
@@ -217,13 +364,14 @@ export function TopNav() {
 const styles = StyleSheet.create({
   header: {
     backgroundColor: colors.panel,
+    zIndex: 100,
   },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    height: 58,
+    height: BAR_HEIGHT,
     maxWidth: 1180,
     width: '100%',
     alignSelf: 'center',
@@ -237,7 +385,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xl,
-    flex: 1,
+    flexShrink: 1,
   },
   brandRow: {
     flexDirection: 'row',
@@ -282,23 +430,11 @@ const styles = StyleSheet.create({
   },
   navItem: {
     paddingVertical: spacing.sm,
-    alignItems: 'center',
   },
   navItemInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-  },
-  navBadge: {
-    color: colors.panel,
-    backgroundColor: colors.cyan,
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 0.5,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: radii.pill,
-    overflow: 'hidden',
   },
   navLabel: {
     color: colors.inkDim,
@@ -309,11 +445,23 @@ const styles = StyleSheet.create({
   navLabelActive: {
     color: colors.cyan,
   },
+  navBadge: {
+    color: colors.panel,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 0.5,
+    backgroundColor: colors.cyan,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    overflow: 'hidden',
+    borderRadius: radii.sm,
+  },
   navUnderline: {
     position: 'absolute',
-    bottom: -6,
+    left: 0,
+    right: 0,
+    bottom: 0,
     height: 2,
-    width: '100%',
     backgroundColor: colors.cyan,
   },
   right: {
@@ -332,7 +480,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
+  statusWrap: {
+    width: 10,
+    height: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: radii.pill,
+    backgroundColor: colors.cyan,
+  },
+  statusRing: {
+    position: 'absolute',
     width: 7,
     height: 7,
     borderRadius: radii.pill,
@@ -352,30 +513,79 @@ const styles = StyleSheet.create({
     maxWidth: 160,
   },
   menuButton: {
-    width: 34,
-    height: 34,
+    width: 38,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.panelLine,
+    backgroundColor: colors.panelAlt,
   },
-  menuGlyph: {
-    color: colors.ink,
-    fontSize: fontSizes.md,
+  glyph: {
+    width: 18,
+    height: 14,
+    justifyContent: 'space-between',
+  },
+  glyphBar: {
+    width: 18,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: colors.ink,
+  },
+  menuOverlay: {
+    flex: 1,
+  },
+  menuBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(8, 12, 16, 0.5)',
   },
   mobileMenu: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     backgroundColor: colors.panelAlt,
     borderTopWidth: 1,
-    borderTopColor: colors.panelLine,
+    borderTopColor: colors.cyan,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.panelLine,
+    paddingVertical: spacing.sm,
+    maxWidth: 1180,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  menuHeading: {
+    color: colors.inkDim,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
   },
   mobileItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
   mobileItemActive: {
     backgroundColor: colors.panel,
   },
+  mobileBullet: {
+    width: 6,
+    height: 6,
+    backgroundColor: colors.panelLine,
+  },
+  mobileBulletActive: {
+    backgroundColor: colors.cyan,
+  },
   mobileLabel: {
+    flex: 1,
     color: colors.inkDim,
     fontFamily: fonts.mono,
     fontSize: fontSizes.md,
@@ -383,6 +593,22 @@ const styles = StyleSheet.create({
   },
   mobileLabelActive: {
     color: colors.cyan,
+  },
+  mobileCount: {
+    color: colors.panel,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
+    backgroundColor: colors.cyan,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 1,
+    overflow: 'hidden',
+    borderRadius: radii.sm,
+  },
+  mobileDivider: {
+    height: 1,
+    backgroundColor: colors.panelLine,
+    marginVertical: spacing.sm,
+    marginHorizontal: spacing.lg,
   },
   mobileSignOut: {
     color: colors.orange,

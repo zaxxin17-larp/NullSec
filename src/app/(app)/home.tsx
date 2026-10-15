@@ -8,6 +8,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader } from '@/components/ui/loader';
+import { Reveal } from '@/components/ui/reveal';
 import { StatusPill } from '@/components/ui/status-pill';
 import { useActivity } from '@/context/activity-context';
 import { useAuth } from '@/context/auth-context';
@@ -164,12 +165,14 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer>
-      <View style={styles.header}>
-        <Text style={styles.eyebrow}>{formatFullDate(today)}</Text>
-        <Text style={styles.greeting}>
-          {greeting()}, {name}
-        </Text>
-      </View>
+      <Reveal>
+        <View style={styles.header}>
+          <Text style={styles.eyebrow}>{formatFullDate(today)}</Text>
+          <Text style={styles.greeting}>
+            {greeting()}, {name}
+          </Text>
+        </View>
+      </Reveal>
 
       <ReleaseNotification />
 
@@ -179,6 +182,7 @@ export default function HomeScreen() {
           subtitle="Class announcements"
           style={[styles.cell, twoColumn && styles.cellHalf]}
           headerAccessory={<Text style={styles.count}>{announcements.length}</Text>}
+          delay={0}
         >
           {latestAnnouncements.length === 0 ? (
             <Text style={styles.muted}>No announcements yet.</Text>
@@ -214,6 +218,7 @@ export default function HomeScreen() {
           headerAccessory={
             todayStatus ? <StatusPill status={todayStatus} size="sm" /> : null
           }
+          delay={60}
         >
           <Text style={styles.muted}>
             {todayStatus
@@ -282,6 +287,7 @@ export default function HomeScreen() {
           title="My profile"
           subtitle="Your class identity"
           style={[styles.cell, twoColumn && styles.cellHalf]}
+          delay={120}
         >
           <Text style={styles.profileName}>{name}</Text>
           <Text style={styles.muted}>{user?.email ?? ''}</Text>
@@ -297,6 +303,7 @@ export default function HomeScreen() {
           title="Module status"
           subtitle="What's online"
           style={[styles.cell, twoColumn && styles.cellHalf]}
+          delay={180}
         >
           <View style={styles.moduleList}>
             <ModuleRow
@@ -331,6 +338,7 @@ export default function HomeScreen() {
           title="App"
           subtitle={`NullSec client · v${appVersion}`}
           style={[styles.cell, twoColumn && styles.cellHalf]}
+          delay={240}
         >
           <Text style={styles.muted}>
             Installed builds can receive over-the-air updates.

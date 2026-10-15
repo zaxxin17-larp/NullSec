@@ -1,5 +1,8 @@
+import { useMemo } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Pressable,
   StyleSheet,
   Text,
@@ -36,6 +39,25 @@ export function Button({
   accessibilityLabel,
 }: ButtonProps) {
   const isInteractive = !disabled && !loading;
+  const scale = useMemo(() => new Animated.Value(1), []);
+
+  function pressIn() {
+    Animated.timing(scale, {
+      toValue: 0.96,
+      duration: 90,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }
+
+  function pressOut() {
+    Animated.timing(scale, {
+      toValue: 1,
+      duration: 140,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }
 
   const textColor =
     variant === 'primary'
@@ -45,43 +67,46 @@ export function Button({
         : colors.text;
 
   return (
-    <Pressable
-      testID={testID}
-      onPress={onPress}
-      disabled={!isInteractive}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ disabled: !isInteractive, busy: loading }}
-      style={({ pressed }) => [
-        styles.base,
-        size === 'sm' && styles.sm,
-        variant === 'primary' && styles.primary,
-        variant === 'secondary' && styles.secondary,
-        variant === 'ghost' && styles.ghost,
-        variant === 'danger' && styles.danger,
-        disabled && styles.disabled,
-        pressed && isInteractive && styles.pressed,
-        style,
-      ]}
-    >
-      {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={variant === 'primary' ? colors.white : colors.accent}
-        />
-      ) : (
-        <Text
-          style={[
-            styles.label,
-            size === 'sm' && styles.labelSm,
-            { color: disabled ? colors.disabledText : textColor },
-          ]}
-          numberOfLines={1}
-        >
-          {label}
-        </Text>
-      )}
-    </Pressable>
+    <Animated.View style={[style, { transform: [{ scale }] }]}>
+      <Pressable
+        testID={testID}
+        onPress={onPress}
+        onPressIn={isInteractive ? pressIn : undefined}
+        onPressOut={isInteractive ? pressOut : undefined}
+        disabled={!isInteractive}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityState={{ disabled: !isInteractive, busy: loading }}
+        style={({ pressed }) => [
+          styles.base,
+          size === 'sm' && styles.sm,
+          variant === 'primary' && styles.primary,
+          variant === 'secondary' && styles.secondary,
+          variant === 'ghost' && styles.ghost,
+          variant === 'danger' && styles.danger,
+          disabled && styles.disabled,
+          pressed && isInteractive && styles.pressed,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator
+            size="small"
+            color={variant === 'primary' ? colors.white : colors.accent}
+          />
+        ) : (
+          <Text
+            style={[
+              styles.label,
+              size === 'sm' && styles.labelSm,
+              { color: disabled ? colors.disabledText : textColor },
+            ]}
+            numberOfLines={1}
+          >
+            {label}
+          </Text>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -100,15 +125,6 @@ const styles = StyleSheet.create({
     minHeight: 32,
     paddingHorizontal: spacing.md,
   },
-  label: {
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.md,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  labelSm: {
-    fontSize: fontSizes.sm,
-  },
   primary: {
     backgroundColor: colors.panel,
     borderColor: colors.panel,
@@ -126,10 +142,18 @@ const styles = StyleSheet.create({
     borderColor: colors.danger,
   },
   disabled: {
-    backgroundColor: colors.surfaceAlt,
-    borderColor: colors.border,
+    opacity: 0.55,
   },
   pressed: {
-    opacity: 0.82,
+    opacity: 0.85,
+  },
+  label: {
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.md,
+    letterSpacing: 1,
+  },
+  labelSm: {
+    fontSize: fontSizes.xs,
+    letterSpacing: 1,
   },
 });

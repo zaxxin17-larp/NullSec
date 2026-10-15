@@ -7,8 +7,8 @@
     "icon": "./assets/icon.png",
     "scheme": "nullsec",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0a0a0a",
-    "primaryColor": "#00ff41",
+    "backgroundColor": "#0c1116",
+    "primaryColor": "#3fd6e8",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -19,7 +19,7 @@
     "android": {
       "package": "com.nullsec.app",
       "adaptiveIcon": {
-        "backgroundColor": "#0a0a0a",
+        "backgroundColor": "#0c1116",
         "foregroundImage": "./assets/adaptive-icon.png",
         "monochromeImage": "./assets/monochrome-icon.png"
       },
@@ -34,9 +34,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0a0a0a",
-          "image": "./assets/splash.png",
-          "imageWidth": 220
+          "backgroundColor": "#0c1116"
         }
       ]
     ],

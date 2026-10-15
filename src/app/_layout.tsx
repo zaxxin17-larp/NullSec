@@ -3,17 +3,17 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { LogBox } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { BootSplash } from '@/components/ui/boot-splash';
 import { AuthProvider } from '@/context/auth-context';
 import { colors } from '@/theme';
 
 // Firestore's WebChannel streaming transport occasionally drops and logs a
-// benign, self-healing "transport errored" warning on React Native. The SDK
-// retries automatically (and we enable long-polling auto-detection in
-// firebase.ts), so keep the noise out of the dev LogBox overlay.
+// benign, self-healing "transport errored" warning on React Native. It is
+// retried automatically, so keep it out of the dev LogBox overlay.
 LogBox.ignoreLogs([/transport errored/i]);
 
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -22,12 +22,15 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({ ShareTechMono_400Regular });
+  const [booted, setBooted] = useState(false);
 
   useEffect(() => {
     if (loaded || error) {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [loaded, error]);
+
+  const handleBootFinish = useCallback(() => setBooted(true), []);
 
   if (!loaded && !error) {
     return null;
@@ -44,6 +47,7 @@ export default function RootLayout() {
             animation: 'fade',
           }}
         />
+        {booted ? null : <BootSplash onFinish={handleBootFinish} />}
       </AuthProvider>
     </GestureHandlerRootView>
   );
