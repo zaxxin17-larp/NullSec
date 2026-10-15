@@ -16,6 +16,7 @@ import { BlinkingCursor } from '@/components/blinking-cursor';
 import { Avatar } from '@/components/ui/avatar';
 import { useActivity } from '@/context/activity-context';
 import { useAuth } from '@/context/auth-context';
+import { subscribeToMember, type MemberProfile } from '@/services/members';
 import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 
 const NAV_ITEMS = [
@@ -137,8 +138,16 @@ export function TopNav() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [clock, setClock] = useState(() => formatClock(new Date()));
+  const [profile, setProfile] = useState<MemberProfile | null>(null);
 
   const menuAnim = useMemo(() => new Animated.Value(0), []);
+
+  const uid = user?.uid;
+
+  useEffect(() => {
+    if (!uid) return;
+    return subscribeToMember(uid, setProfile, () => {});
+  }, [uid]);
 
   useEffect(() => {
     const timer = setInterval(() => setClock(formatClock(new Date())), 1000);
@@ -233,7 +242,14 @@ export function TopNav() {
 
           {isWide ? <Text style={styles.userName}>{name}</Text> : null}
 
-          <Avatar name={name} size={30} testID="nav-avatar" />
+          <Avatar
+            name={name}
+            size={30}
+            testID="nav-avatar"
+            seed={uid}
+            url={profile?.avatarUrl}
+            accent={profile?.accent}
+          />
 
           {!isWide ? (
             <Pressable

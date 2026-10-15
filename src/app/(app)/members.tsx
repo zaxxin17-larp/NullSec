@@ -111,7 +111,13 @@ export default function MembersScreen() {
                   style={styles.row}
                   testID={`member-${member.uid}`}
                 >
-                  <Avatar name={member.username} size={34} />
+                  <Avatar
+                    name={member.username}
+                    size={36}
+                    seed={member.uid}
+                    url={member.avatarUrl}
+                    accent={member.accent}
+                  />
                   <View style={styles.rowInfo}>
                     <Text
                       style={[styles.rowName, isSelf && styles.rowSelf]}
@@ -120,8 +126,11 @@ export default function MembersScreen() {
                       {member.username}
                       {isSelf ? ' (you)' : ''}
                     </Text>
-                    <Text style={styles.rowMeta}>
-                      {isAdminMember ? 'Administrator' : 'Student'}
+                    <Text
+                      style={[styles.rowMeta, member.bio && styles.rowBio]}
+                      numberOfLines={1}
+                    >
+                      {member.bio || (isAdminMember ? 'Administrator' : 'Student')}
                     </Text>
                   </View>
                   {isAdminMember ? (
@@ -181,6 +190,11 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs,
     marginTop: 1,
     letterSpacing: 0.5,
+  },
+  rowBio: {
+    color: colors.textDim,
+    fontFamily: fonts.sans,
+    fontStyle: 'italic',
   },
   adminBadge: {
     color: colors.panel,

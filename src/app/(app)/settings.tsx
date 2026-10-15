@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenContainer } from '@/components/screen-container';
 import { Avatar } from '@/components/ui/avatar';
@@ -13,23 +13,36 @@ import { TextField } from '@/components/ui/text-field';
 import { useActivity } from '@/context/activity-context';
 import { useAuth } from '@/context/auth-context';
 import { logOut, sendPasswordReset, updateUsername } from '@/services/auth';
-import { subscribeToMember, type MemberRole } from '@/services/members';
-import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
+import {
+  AVATAR_URL_MAX_LENGTH,
+  BIO_MAX_LENGTH,
+  subscribeToMember,
+  updateProfileDetails,
+  type MemberProfile,
+} from '@/services/members';
+import { avatarColors, colors, fontSizes, fonts, radii, spacing } from '@/theme';
 import { checkForUpdates } from '@/updates';
 
 export default function SettingsScreen() {
   const { user } = useAuth();
   const { unreadCount, markSeen } = useActivity();
 
-  const [role, setRole] = useState<MemberRole>('student');
+  const [member, setMember] = useState<MemberProfile | null>(null);
 
-  // Editing is draft-based: `draftName` is null until the user types, so the
-  // field tracks the auth profile without a syncing effect.
+  // Editing is draft-based: each draft is null until the user edits it, so the
+  // fields track the stored profile without a syncing effect.
   const [committedName, setCommittedName] = useState<string | null>(null);
   const [draftName, setDraftName] = useState<string | null>(null);
   const [savingName, setSavingName] = useState(false);
   const [nameMessage, setNameMessage] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
+
+  const [draftUrl, setDraftUrl] = useState<string | null>(null);
+  const [draftAccent, setDraftAccent] = useState<string | null>(null);
+  const [draftBio, setDraftBio] = useState<string | null>(null);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   const [sendingReset, setSendingReset] = useState(false);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
@@ -42,14 +55,11 @@ export default function SettingsScreen() {
 
   const uid = user?.uid;
   const email = user?.email ?? '';
+  const role = member?.role ?? 'student';
 
   useEffect(() => {
     if (!uid) return;
-    const unsubscribe = subscribeToMember(
-      uid,
-      (member) => setRole(member?.role ?? 'student'),
-      () => {},
-    );
+    const unsubscribe = subscribeToMember(uid, setMember, () => {});
     return unsubscribe;
   }, [uid]);
 
@@ -62,6 +72,17 @@ export default function SettingsScreen() {
   const trimmedName = name.trim();
   const nameChanged =
     draftName !== null && trimmedName.length >= 3 && trimmedName !== baseName;
+
+  const storedUrl = member?.avatarUrl ?? '';
+  const storedAccent = member?.accent ?? '';
+  const storedBio = member?.bio ?? '';
+  const avatarUrl = draftUrl ?? storedUrl;
+  const accent = draftAccent ?? storedAccent;
+  const bio = draftBio ?? storedBio;
+  const profileChanged =
+    (draftUrl !== null && avatarUrl !== storedUrl) ||
+    (draftAccent !== null && accent !== storedAccent) ||
+    (draftBio !== null && bio !== storedBio);
 
   async function handleSaveName() {
     if (!uid || !nameChanged || savingName) return;
@@ -77,6 +98,30 @@ export default function SettingsScreen() {
       setNameError('Could not update your name. Check your connection and try again.');
     } finally {
       setSavingName(false);
+    }
+  }
+
+  async function handleSaveProfile() {
+    if (!uid || !profileChanged || savingProfile) return;
+    setSavingProfile(true);
+    setProfileError(null);
+    setProfileMessage(null);
+    try {
+      await updateProfileDetails(uid, {
+        avatarUrl: avatarUrl.trim(),
+        accent: accent.trim(),
+        bio: bio.trim(),
+      });
+      setDraftUrl(null);
+      setDraftAccent(null);
+      setDraftBio(null);
+      setProfileMessage('Profile saved.');
+    } catch {
+      setProfileError(
+        'Could not save your profile. Check your connection and deployed rules.',
+      );
+    } finally {
+      setSavingProfile(false);
     }
   }
 
@@ -127,7 +172,13 @@ export default function SettingsScreen() {
 
       <Card title="Operator" subtitle="Shown across the class network">
         <View style={styles.profileRow}>
-          <Avatar name={trimmedName || email || '?'} size={46} />
+          <Avatar
+            name={trimmedName || email || '?'}
+            size={46}
+            seed={uid}
+            url={avatarUrl}
+            accent={accent}
+          />
           <View style={styles.profileInfo}>
             <Text style={styles.profileName} numberOfLines={1}>
               {trimmedName || 'Unnamed operator'}
@@ -160,6 +211,97 @@ export default function SettingsScreen() {
           loading={savingName}
           style={styles.button}
           testID="settings-save-name"
+        />
+      </Card>
+
+      <Card title="Profile picture" subtitle="Avatar, accent and status" delay={40}>
+        <View style={styles.avatarPreview}>
+          <Avatar
+            name={trimmedName || email || '?'}
+            size={72}
+            seed={uid}
+            url={avatarUrl}
+            accent={accent}
+          />
+          <Text style={styles.avatarHint}>
+            {avatarUrl
+              ? 'Using your linked picture.'
+              : 'Generated from your operator ID.'}
+          </Text>
+        </View>
+
+        <Text style={styles.fieldLabel}>ACCENT</Text>
+        <View style={styles.swatches}>
+          <Pressable
+            onPress={() => setDraftAccent('')}
+            accessibilityRole="button"
+            accessibilityLabel="Default accent"
+            accessibilityState={{ selected: accent === '' }}
+            style={[
+              styles.swatch,
+              styles.swatchDefault,
+              accent === '' && styles.swatchActive,
+            ]}
+            testID="settings-accent-default"
+          >
+            <Text style={styles.swatchDefaultText}>A</Text>
+          </Pressable>
+          {avatarColors.map((swatch) => {
+            const active = accent.toLowerCase() === swatch.toLowerCase();
+            return (
+              <Pressable
+                key={swatch}
+                onPress={() => setDraftAccent(swatch)}
+                accessibilityRole="button"
+                accessibilityLabel={`Accent ${swatch}`}
+                accessibilityState={{ selected: active }}
+                style={[
+                  styles.swatch,
+                  { backgroundColor: swatch },
+                  active && styles.swatchActive,
+                ]}
+                testID={`settings-accent-${swatch.replace('#', '')}`}
+              />
+            );
+          })}
+        </View>
+
+        <TextField
+          label="Picture link"
+          value={avatarUrl}
+          onChangeText={setDraftUrl}
+          placeholder="https://…/photo.jpg"
+          autoCapitalize="none"
+          keyboardType="url"
+          maxLength={AVATAR_URL_MAX_LENGTH}
+          style={styles.field}
+          testID="settings-avatar-url"
+        />
+        <Text style={styles.hint}>
+          Paste a link to an image, or leave it blank to keep the generated avatar.
+        </Text>
+
+        <TextField
+          label="Status"
+          value={bio}
+          onChangeText={setDraftBio}
+          placeholder="A short line about you"
+          autoCapitalize="sentences"
+          multiline
+          maxLength={BIO_MAX_LENGTH}
+          style={styles.field}
+          testID="settings-bio"
+        />
+
+        {profileError ? <Text style={styles.error}>{profileError}</Text> : null}
+        {profileMessage ? <Text style={styles.success}>{profileMessage}</Text> : null}
+        <Button
+          label="Save profile"
+          onPress={handleSaveProfile}
+          disabled={!profileChanged}
+          loading={savingProfile}
+          style={styles.button}
+          testID="settings-save-profile"
         />
       </Card>
 
@@ -264,6 +406,59 @@ const styles = StyleSheet.create({
     fontFamily: fonts.mono,
     fontSize: fontSizes.xs,
     marginTop: 2,
+  },
+  avatarPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  avatarHint: {
+    flex: 1,
+    color: colors.textMuted,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.sm,
+  },
+  fieldLabel: {
+    color: colors.textMuted,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
+    letterSpacing: 1.5,
+    marginBottom: spacing.sm,
+  },
+  swatches: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  swatch: {
+    width: 28,
+    height: 28,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.borderDim,
+  },
+  swatchActive: {
+    borderColor: colors.text,
+    borderWidth: 2,
+  },
+  swatchDefault: {
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  swatchDefaultText: {
+    color: colors.textMuted,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.sm,
+  },
+  hint: {
+    color: colors.textMuted,
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.xs,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.md,
   },
   roleTag: {
     color: colors.panel,

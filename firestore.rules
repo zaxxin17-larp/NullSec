@@ -75,10 +75,30 @@ service cloud.firestore {
       }
     }
 
-    // Public class directory: members/{uid}. Name only (no email), readable by
-    // any signed-in classmate.
+    // Public class directory: members/{uid}. Name plus optional custom profile
+    // (avatar link, accent colour, status) — no email — readable by any
+    // signed-in classmate.
     function memberFields() {
-      return ['uid', 'username', 'role', 'createdAt'];
+      return ['uid', 'username', 'role', 'createdAt', 'avatarUrl', 'accent', 'bio'];
+    }
+
+    function hasKey(data, key) {
+      return data.keys().hasAny([key]);
+    }
+
+    // The custom profile fields are optional so older documents (created before
+    // they existed) can still be updated by name alone.
+    function validProfile(data) {
+      return (!hasKey(data, 'avatarUrl')
+          || data.avatarUrl == ''
+          || (data.avatarUrl is string
+              && data.avatarUrl.size() <= 500
+              && data.avatarUrl.matches('^https://.*')))
+        && (!hasKey(data, 'accent')
+          || data.accent == ''
+          || (data.accent is string && data.accent.matches('^#[0-9a-fA-F]{6}$')))
+        && (!hasKey(data, 'bio')
+          || (data.bio is string && data.bio.size() <= 120));
     }
 
     match /members/{uid} {
@@ -89,13 +109,15 @@ service cloud.firestore {
         && request.resource.data.uid == uid
         && validUsername(request.resource.data.username)
         && request.resource.data.role == 'student'
+        && validProfile(request.resource.data)
         && request.resource.data.createdAt == request.time;
 
       allow update: if isOwner(uid)
         && request.resource.data.keys().hasOnly(memberFields())
         && request.resource.data.uid == uid
         && validUsername(request.resource.data.username)
-        && request.resource.data.role == resource.data.role;
+        && request.resource.data.role == resource.data.role
+        && validProfile(request.resource.data);
 
       allow delete: if isOwner(uid);
     }

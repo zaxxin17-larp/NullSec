@@ -116,6 +116,20 @@ export const radii = {
   pill: 999,
 } as const;
 
+/** Accent choices for custom avatars (also exposed as swatches in Settings). */
+export const avatarColors = [
+  '#3fd6e8',
+  '#2f6bed',
+  '#7c5cff',
+  '#e0529c',
+  '#f5a623',
+  '#f2c14e',
+  '#4bd08b',
+  '#2fb8a0',
+  '#ef5b5b',
+  '#8b98a5',
+] as const;
+
 /** Crisp ctOS elevation — a hard offset shadow rather than a soft blur. */
 export const shadow: ViewStyle = {
   shadowColor: '#0a0f14',

@@ -7,6 +7,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from 'firebase/firestore';
 
 import { db } from '@/firebase';
@@ -19,6 +20,11 @@ import { timestampToDate } from '@/utils/firestore';
  * `role` is `admin` or `student`. It is forced to `student` on create and can
  * only be changed out-of-band (Firebase console / admin SDK) — clients cannot
  * promote themselves.
+ *
+ * Custom profile fields (all optional strings, empty = unset):
+ *   `avatarUrl` — link to a profile picture (https only)
+ *   `accent`    — avatar accent colour, `#rrggbb`
+ *   `bio`       — short status line
  */
 export type MemberRole = 'admin' | 'student';
 
@@ -27,7 +33,26 @@ export type MemberProfile = {
   username: string;
   role: MemberRole;
   createdAt: Date | null;
+  avatarUrl: string;
+  accent: string;
+  bio: string;
 };
+
+/** The editable part of a member's custom profile. */
+export type ProfileDetails = {
+  avatarUrl: string;
+  accent: string;
+  bio: string;
+};
+
+export const EMPTY_PROFILE: ProfileDetails = { avatarUrl: '', accent: '', bio: '' };
+
+export const BIO_MAX_LENGTH = 120;
+export const AVATAR_URL_MAX_LENGTH = 500;
+
+function asString(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
 
 function toMember(id: string, data: Record<string, unknown>): MemberProfile {
   return {
@@ -35,6 +60,9 @@ function toMember(id: string, data: Record<string, unknown>): MemberProfile {
     username: typeof data.username === 'string' ? data.username : 'Unknown',
     role: data.role === 'admin' ? 'admin' : 'student',
     createdAt: timestampToDate(data.createdAt),
+    avatarUrl: asString(data.avatarUrl),
+    accent: asString(data.accent),
+    bio: asString(data.bio),
   };
 }
 
@@ -72,6 +100,22 @@ export function subscribeToMember(
 }
 
 /**
+ * Save the caller's custom profile (avatar link, accent colour, bio). Writes the
+ * whole editable set at once so the rules always see the fields it validates.
+ */
+export async function updateProfileDetails(
+  uid: string,
+  details: ProfileDetails,
+): Promise<void> {
+  await updateDoc(doc(db, 'members', uid), {
+    uid,
+    avatarUrl: details.avatarUrl.trim(),
+    accent: details.accent.trim(),
+    bio: details.bio.trim(),
+  });
+}
+
+/**
  * Create the caller's directory entry if it does not exist yet. Safe to call on
  * every launch; it only writes when the document is missing. Fails silently when
  * the rules have not been deployed so the app keeps working.
@@ -89,6 +133,9 @@ export async function ensureMemberProfile(
       username,
       role: 'student',
       createdAt: serverTimestamp(),
+      avatarUrl: '',
+      accent: '',
+      bio: '',
     });
   } catch {
     // Rules may not be deployed yet, or offline — the directory entry is optional.

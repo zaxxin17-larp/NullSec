@@ -134,7 +134,15 @@ export default function CalendarScreen() {
   const roster = useMemo(() => {
     const list = [...members];
     if (uid && !list.some((member) => member.uid === uid)) {
-      list.push({ uid, username: 'You', role: 'student', createdAt: null });
+      list.push({
+        uid,
+        username: 'You',
+        role: 'student',
+        createdAt: null,
+        avatarUrl: '',
+        accent: '',
+        bio: '',
+      });
     }
     return list;
   }, [members, uid]);
