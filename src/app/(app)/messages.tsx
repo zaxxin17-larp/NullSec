@@ -113,6 +113,8 @@ export default function MessagesScreen() {
     <ScreenContainer scroll={false}>
       <ScreenHeader
         title="Class messages"
+        kicker="CLASS NETWORK // COMMS"
+        code="SEC-04"
         subtitle="One room for the whole section."
         testID="messages-title"
       />

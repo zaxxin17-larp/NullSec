@@ -100,8 +100,9 @@ export default function AnnouncementsScreen() {
     <ScreenContainer>
       <ScreenHeader
         title="Announcements"
-        subtitle="Notices from your class admins."
-        badge={canPost ? 'ADMIN' : undefined}
+        kicker="CLASS NETWORK // BROADCAST"
+        code="SEC-03"
+        badge="LIVE"
         testID="announcements-title"
       />
 

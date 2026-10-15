@@ -67,6 +67,8 @@ export default function MembersScreen() {
     <ScreenContainer>
       <ScreenHeader
         title="Classmates directory"
+        kicker="CLASS NETWORK // DIRECTORY"
+        code="SEC-01"
         subtitle="Everyone in your class section."
         testID="members-title"
       />

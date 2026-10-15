@@ -219,6 +219,8 @@ export default function CalendarScreen() {
     <ScreenContainer>
       <ScreenHeader
         title="Attendance calendar"
+        kicker="CLASS NETWORK // ATTENDANCE"
+        code="SEC-02"
         subtitle={
           isAdmin
             ? 'Mark each student present, absent or excused.'

@@ -18,6 +18,7 @@ type CardProps = {
   testID?: string;
 };
 
+/** ctOS HUD panel: raised header strip, left accent rail and corner brackets. */
 export function Card({
   children,
   title,
@@ -28,25 +29,32 @@ export function Card({
   delay = 0,
   testID,
 }: CardProps) {
+  const hasHeader = Boolean(title || subtitle || headerAccessory);
+
   return (
     <Reveal style={style} delay={delay}>
       <View style={styles.card} testID={testID}>
-        {title || subtitle || headerAccessory ? (
+        {hasHeader ? (
           <View style={styles.header}>
-            <View style={styles.headerText}>
-              {title ? (
-                <View style={styles.titleRow}>
-                  <View style={styles.titleMark} />
-                  <Text style={styles.title}>{title}</Text>
-                </View>
-              ) : null}
-              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            <View style={styles.headerLeft}>
+              <View style={styles.mark} />
+              <View style={styles.headerText}>
+                {title ? <Text style={styles.title}>{title}</Text> : null}
+                {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+              </View>
             </View>
-            {headerAccessory}
+            <View style={styles.headerRight}>
+              <View style={styles.ticks}>
+                <View style={styles.tick} />
+                <View style={styles.tick} />
+                <View style={styles.tick} />
+              </View>
+              {headerAccessory}
+            </View>
           </View>
         ) : null}
         <View style={[styles.body, bodyStyle]}>{children}</View>
-        <HudCorners size={11} inset={-1} />
+        <HudCorners size={11} thickness={2} inset={-1} opacity={0.7} />
       </View>
     </Reveal>
   );
@@ -57,6 +65,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.cyanDim,
     borderRadius: radii.md,
     overflow: 'hidden',
   },
@@ -64,24 +74,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     backgroundColor: colors.panelAlt,
     borderBottomWidth: 1,
     borderBottomColor: colors.cyan,
   },
-  headerText: {
-    flex: 1,
-  },
-  titleRow: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    flex: 1,
   },
-  titleMark: {
+  mark: {
     width: 6,
     height: 6,
     backgroundColor: colors.cyan,
+  },
+  headerText: {
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  ticks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  tick: {
+    width: 2,
+    height: 10,
+    backgroundColor: colors.panelLine,
   },
   title: {
     color: colors.cyan,

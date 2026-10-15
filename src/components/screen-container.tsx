@@ -12,9 +12,11 @@ import {
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { useTopInsetHandled } from '@/context/chrome-context';
+import { HudCorners } from '@/components/ui/hud-corners';
 import { colors, spacing } from '@/theme';
 
 const GRID_STEP = 40;
+const SCAN_STEP = 3;
 
 /** Faint fixed technical grid behind the page content (ctOS canvas). */
 function CanvasGrid() {
@@ -40,6 +42,20 @@ function CanvasGrid() {
   );
 }
 
+/** CRT scanline texture over the canvas — the "screen glow" of the console. */
+function Scanlines() {
+  const { height } = useWindowDimensions();
+  const count = Math.min(Math.ceil(height / SCAN_STEP), 400);
+
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      {Array.from({ length: count }, (_, i) => (
+        <View key={i} style={[styles.scanline, { top: i * SCAN_STEP }]} />
+      ))}
+    </View>
+  );
+}
+
 type ScreenContainerProps = {
   children: ReactNode;
   scroll?: boolean;
@@ -48,8 +64,8 @@ type ScreenContainerProps = {
 };
 
 /**
- * Light ctOS canvas: safe area + keyboard avoidance + a centered content column
- * that stays readable on wide web/tablet layouts.
+ * ctOS canvas: safe area, a fixed HUD frame, optional scroll, and a centered
+ * content column that stays readable on wide web/tablet layouts.
  */
 export function ScreenContainer({
   children,
@@ -65,6 +81,12 @@ export function ScreenContainer({
   return (
     <SafeAreaView style={styles.safe} edges={edges} testID={testID}>
       <CanvasGrid />
+      <Scanlines />
+
+      <View pointerEvents="none" style={styles.frame}>
+        <HudCorners size={22} thickness={2} inset={9} opacity={0.5} />
+      </View>
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -95,6 +117,13 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  frame: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   content: {
     flexGrow: 1,
     width: '100%',
@@ -116,5 +145,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
+  },
+  scanline: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(63, 214, 232, 0.035)',
   },
 });

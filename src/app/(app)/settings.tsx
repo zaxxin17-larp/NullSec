@@ -166,6 +166,8 @@ export default function SettingsScreen() {
     <ScreenContainer>
       <ScreenHeader
         title="Settings"
+        kicker="NULLSEC // OPERATOR"
+        code="SEC-00"
         subtitle="Operator profile, account and client."
         testID="settings-title"
       />

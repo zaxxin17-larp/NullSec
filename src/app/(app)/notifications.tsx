@@ -59,6 +59,8 @@ export default function NotificationsScreen() {
     <ScreenContainer>
       <ScreenHeader
         title="Notifications"
+        kicker="CLASS NETWORK // ACTIVITY"
+        code="SEC-05"
         subtitle="Recent activity in your class."
         testID="notifications-title"
       />

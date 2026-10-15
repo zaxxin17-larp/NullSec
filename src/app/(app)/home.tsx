@@ -200,7 +200,7 @@ export default function HomeScreen() {
 
           <View style={styles.heroDivider} />
 
-          <Text style={styles.heroSection}>Attendance · this month</Text>
+          <Text style={styles.heroSection}>{'// Attendance · this month'}</Text>
           <View style={styles.statRow}>
             <Stat label="Present" value={summary.present} color={ON_DARK.present} />
             <Stat label="Absent" value={summary.absent} color={ON_DARK.absent} />
@@ -213,33 +213,38 @@ export default function HomeScreen() {
       <ReleaseNotification />
 
       <Reveal delay={60} style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick access</Text>
+        <Text style={styles.sectionTitle}>{'// Quick access'}</Text>
         <View style={styles.actions}>
           <QuickAction
+            index="01"
             label="ATTENDANCE"
             meta={isAdmin ? 'Take attendance' : 'Calendar'}
             onPress={() => router.push('/(app)/calendar')}
             testID="home-open-calendar"
           />
           <QuickAction
+            index="02"
             label="CLASSMATES"
             meta="Directory"
             onPress={() => router.push('/(app)/members')}
             testID="home-open-members"
           />
           <QuickAction
+            index="03"
             label="NOTICES"
             meta={`${announcements.length} posted`}
             onPress={() => router.push('/(app)/announcements')}
             testID="home-open-announcements"
           />
           <QuickAction
+            index="04"
             label="MESSAGES"
             meta="Class chat"
             onPress={() => router.push('/(app)/messages')}
             testID="home-open-messages"
           />
           <QuickAction
+            index="05"
             label="ALERTS"
             meta={unreadCount > 0 ? `${unreadCountLabel} new` : 'All caught up'}
             onPress={() => router.push('/(app)/notifications')}
@@ -355,11 +360,13 @@ function Stat({
 }
 
 function QuickAction({
+  index,
   label,
   meta,
   onPress,
   testID,
 }: {
+  index: string;
   label: string;
   meta: string;
   onPress: () => void;
@@ -373,6 +380,10 @@ function QuickAction({
       testID={testID}
       style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}
     >
+      <View style={styles.actionTop}>
+        <Text style={styles.actionIndex}>{index}</Text>
+        <Text style={styles.actionChevron}>{'→'}</Text>
+      </View>
       <Text style={styles.actionLabel}>{label}</Text>
       <Text style={styles.actionMeta} numberOfLines={1}>
         {meta}
@@ -487,7 +498,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   sectionTitle: {
-    color: colors.textMuted,
+    color: colors.cyanDim,
     fontFamily: fonts.mono,
     fontSize: fontSizes.xs,
     letterSpacing: 2,
@@ -508,6 +519,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderTopWidth: 2,
     borderTopColor: colors.accent,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.cyanDim,
     borderRadius: radii.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
@@ -516,6 +529,23 @@ const styles = StyleSheet.create({
   actionPressed: {
     backgroundColor: colors.surfaceAlt,
     borderColor: colors.borderStrong,
+  },
+  actionTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  actionIndex: {
+    color: colors.cyanDim,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+  },
+  actionChevron: {
+    color: colors.cyanDim,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.sm,
   },
   actionLabel: {
     color: colors.text,
