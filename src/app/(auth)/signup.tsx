@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
   },
   checkmark: {
-    color: colors.white,
+    color: colors.panel,
     fontSize: 13,
     fontWeight: '700',
   },

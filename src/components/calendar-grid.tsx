@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   dayTextSelected: {
-    color: colors.white,
+    color: colors.panel,
     fontWeight: '700',
   },
   dot: {
@@ -160,6 +160,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   dotSelected: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.panel,
   },
 });

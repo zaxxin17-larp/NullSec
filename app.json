@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "nullsec",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0c1116",
+    "backgroundColor": "#05090d",
     "primaryColor": "#3fd6e8",
     "assetBundlePatterns": [
       "**/*"
@@ -34,7 +34,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0c1116"
+          "backgroundColor": "#05090d"
         }
       ]
     ],

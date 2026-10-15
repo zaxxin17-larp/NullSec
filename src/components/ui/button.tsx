@@ -61,7 +61,7 @@ export function Button({
 
   const textColor =
     variant === 'primary'
-      ? colors.cyan
+      ? colors.panel
       : variant === 'danger'
         ? colors.danger
         : colors.text;
@@ -91,7 +91,7 @@ export function Button({
         {loading ? (
           <ActivityIndicator
             size="small"
-            color={variant === 'primary' ? colors.white : colors.accent}
+            color={variant === 'primary' ? colors.panel : colors.accent}
           />
         ) : (
           <Text
@@ -126,8 +126,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   primary: {
-    backgroundColor: colors.panel,
-    borderColor: colors.panel,
+    backgroundColor: colors.cyan,
+    borderColor: colors.cyan,
   },
   secondary: {
     backgroundColor: colors.surface,
