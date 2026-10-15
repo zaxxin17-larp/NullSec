@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
-import { useTopInsetHandled } from '@/context/chrome-context';
+import { useBottomInsetHandled } from '@/context/chrome-context';
 import { HudCorners } from '@/components/ui/hud-corners';
 import { colors, spacing } from '@/theme';
 
@@ -73,9 +73,9 @@ export function ScreenContainer({
   contentStyle,
   testID,
 }: ScreenContainerProps) {
-  const topInsetHandled = useTopInsetHandled();
-  const edges: Edge[] = topInsetHandled
-    ? ['left', 'right', 'bottom']
+  const bottomInsetHandled = useBottomInsetHandled();
+  const edges: Edge[] = bottomInsetHandled
+    ? ['top', 'left', 'right']
     : ['top', 'left', 'right', 'bottom'];
 
   return (

@@ -2,19 +2,18 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 
-import { TopNav } from '@/components/ui/top-nav';
+import { BottomNav } from '@/components/ui/bottom-nav';
 import { ActivityProvider } from '@/context/activity-context';
 import { ChromeInsetProvider } from '@/context/chrome-context';
 import { colors } from '@/theme';
 
-/** Shared shell for all signed-in screens: persistent horizontal top nav. */
+/** Shared shell for all signed-in screens: persistent bottom navigation. */
 export default function AppLayout() {
   return (
     <ActivityProvider>
       <ChromeInsetProvider>
         <View style={styles.root}>
           <StatusBar style="light" />
-          <TopNav />
           <View style={styles.body}>
             <Stack
               screenOptions={{
@@ -24,6 +23,7 @@ export default function AppLayout() {
               }}
             />
           </View>
+          <BottomNav />
         </View>
       </ChromeInsetProvider>
     </ActivityProvider>
