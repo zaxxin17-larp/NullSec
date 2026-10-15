@@ -1,4 +1,4 @@
-import { Link, Redirect } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -6,6 +6,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import { Avatar } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
 import { Loader } from '@/components/ui/loader';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
 import { useAuth } from '@/context/auth-context';
 import { subscribeToMembers, type MemberProfile } from '@/services/members';
@@ -64,16 +65,11 @@ export default function MembersScreen() {
 
   return (
     <ScreenContainer>
-      <Link href="/(app)/home" style={styles.backLink}>
-        {'\u2190  System'}
-      </Link>
-
-      <View style={styles.header}>
-        <Text style={styles.title}>Classmates directory</Text>
-        <Text style={styles.subtitle}>
-          Everyone in your class section.
-        </Text>
-      </View>
+      <ScreenHeader
+        title="Classmates directory"
+        subtitle="Everyone in your class section."
+        testID="members-title"
+      />
 
       <TextField
         value={search}
@@ -147,27 +143,6 @@ export default function MembersScreen() {
 }
 
 const styles = StyleSheet.create({
-  backLink: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.sm,
-    marginBottom: spacing.lg,
-  },
-  header: {
-    marginBottom: spacing.lg,
-  },
-  title: {
-    color: colors.text,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xl,
-    letterSpacing: 1,
-  },
-  subtitle: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.sm,
-    marginTop: spacing.xs,
-  },
   search: {
     marginBottom: spacing.lg,
   },

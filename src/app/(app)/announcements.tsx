@@ -1,4 +1,4 @@
-import { Link, Redirect } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -7,6 +7,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader } from '@/components/ui/loader';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { useAuth } from '@/context/auth-context';
 import {
   addAnnouncement,
@@ -15,7 +16,7 @@ import {
   type Announcement,
 } from '@/services/announcements';
 import { subscribeToMember } from '@/services/members';
-import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
+import { colors, fontSizes, fonts, spacing } from '@/theme';
 import { formatDateTime } from '@/utils/date';
 
 function describeError(error: Error): string {
@@ -97,17 +98,12 @@ export default function AnnouncementsScreen() {
 
   return (
     <ScreenContainer>
-      <Link href="/(app)/home" style={styles.backLink}>
-        {'\u2190  System'}
-      </Link>
-
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>Announcements</Text>
-          {canPost ? <Text style={styles.adminBadge}>ADMIN</Text> : null}
-        </View>
-        <Text style={styles.subtitle}>Notices from your class admins.</Text>
-      </View>
+      <ScreenHeader
+        title="Announcements"
+        subtitle="Notices from your class admins."
+        badge={canPost ? 'ADMIN' : undefined}
+        testID="announcements-title"
+      />
 
       {canPost ? (
         <Button
@@ -179,43 +175,6 @@ export default function AnnouncementsScreen() {
 }
 
 const styles = StyleSheet.create({
-  backLink: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.sm,
-    marginBottom: spacing.lg,
-  },
-  header: {
-    marginBottom: spacing.lg,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  title: {
-    color: colors.text,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xl,
-    letterSpacing: 1,
-  },
-  adminBadge: {
-    color: colors.panel,
-    backgroundColor: colors.cyan,
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 2,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radii.sm,
-    overflow: 'hidden',
-  },
-  subtitle: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.sm,
-    marginTop: spacing.xs,
-  },
   postButton: {
     alignSelf: 'flex-start',
     marginBottom: spacing.lg,

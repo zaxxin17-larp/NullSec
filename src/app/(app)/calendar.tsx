@@ -1,4 +1,4 @@
-import { Link, Redirect } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -9,6 +9,7 @@ import { AttendanceToggle } from '@/components/ui/attendance-toggle';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader } from '@/components/ui/loader';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { StatusPill } from '@/components/ui/status-pill';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -208,21 +209,16 @@ export default function CalendarScreen() {
 
   return (
     <ScreenContainer>
-      <Link href="/(app)/home" style={styles.backLink}>
-        {'\u2190  System'}
-      </Link>
-
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>Attendance calendar</Text>
-          {isAdmin ? <Text style={styles.adminBadge}>ADMIN</Text> : null}
-        </View>
-        <Text style={styles.subtitle}>
-          {isAdmin
+      <ScreenHeader
+        title="Attendance calendar"
+        subtitle={
+          isAdmin
             ? 'Mark each student present, absent or excused.'
-            : 'View your attendance and the class roster.'}
-        </Text>
-      </View>
+            : 'View your attendance and the class roster.'
+        }
+        badge={isAdmin ? 'ADMIN' : undefined}
+        testID="calendar-title"
+      />
 
       <View style={styles.monthNav}>
         <Pressable
@@ -391,43 +387,6 @@ function LegendItem({ color, label }: { color: string; label: string }) {
 }
 
 const styles = StyleSheet.create({
-  backLink: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.sm,
-    marginBottom: spacing.lg,
-  },
-  header: {
-    marginBottom: spacing.xl,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  title: {
-    color: colors.text,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xl,
-    letterSpacing: 1,
-  },
-  adminBadge: {
-    color: colors.panel,
-    backgroundColor: colors.cyan,
-    fontFamily: fonts.mono,
-    fontSize: 10,
-    letterSpacing: 2,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radii.sm,
-    overflow: 'hidden',
-  },
-  subtitle: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.sm,
-    marginTop: spacing.xs,
-  },
   monthNav: {
     flexDirection: 'row',
     alignItems: 'center',

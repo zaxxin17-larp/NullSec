@@ -1,4 +1,4 @@
-import { Link, Redirect } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Pressable,
@@ -12,6 +12,7 @@ import {
 import { ScreenContainer } from '@/components/screen-container';
 import { Button } from '@/components/ui/button';
 import { Loader } from '@/components/ui/loader';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { useAuth } from '@/context/auth-context';
 import { subscribeToMember } from '@/services/members';
 import {
@@ -110,14 +111,11 @@ export default function MessagesScreen() {
 
   return (
     <ScreenContainer scroll={false}>
-      <Link href="/(app)/home" style={styles.backLink}>
-        {'\u2190  System'}
-      </Link>
-
-      <View style={styles.header}>
-        <Text style={styles.title}>Class messages</Text>
-        <Text style={styles.subtitle}>One room for the whole section.</Text>
-      </View>
+      <ScreenHeader
+        title="Class messages"
+        subtitle="One room for the whole section."
+        testID="messages-title"
+      />
 
       {syncError ? <Text style={styles.error}>{syncError}</Text> : null}
       {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
@@ -225,27 +223,6 @@ export default function MessagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  backLink: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.sm,
-    marginBottom: spacing.lg,
-  },
-  header: {
-    marginBottom: spacing.md,
-  },
-  title: {
-    color: colors.text,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xl,
-    letterSpacing: 1,
-  },
-  subtitle: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.sm,
-    marginTop: spacing.xs,
-  },
   error: {
     color: colors.danger,
     fontFamily: fonts.sans,

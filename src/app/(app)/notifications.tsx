@@ -1,4 +1,4 @@
-import { Link, Redirect, useFocusEffect, useRouter } from 'expo-router';
+import { Redirect, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -6,6 +6,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader } from '@/components/ui/loader';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { useActivity, type ActivityItem } from '@/context/activity-context';
 import { useAuth } from '@/context/auth-context';
 import { subscribeToEvents, type CalendarEvent } from '@/services/events';
@@ -56,16 +57,11 @@ export default function NotificationsScreen() {
 
   return (
     <ScreenContainer>
-      <Link href="/(app)/home" style={styles.backLink}>
-        {'\u2190  System'}
-      </Link>
-
-      <View style={styles.header}>
-        <Text style={styles.title}>Notifications</Text>
-        <Text style={styles.subtitle}>
-          Recent activity in your class.
-        </Text>
-      </View>
+      <ScreenHeader
+        title="Notifications"
+        subtitle="Recent activity in your class."
+        testID="notifications-title"
+      />
 
       <Card
         title="Recent activity"
@@ -147,27 +143,6 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  backLink: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.sm,
-    marginBottom: spacing.lg,
-  },
-  header: {
-    marginBottom: spacing.lg,
-  },
-  title: {
-    color: colors.text,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xl,
-    letterSpacing: 1,
-  },
-  subtitle: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.sm,
-    marginTop: spacing.xs,
-  },
   panel: {
     marginTop: spacing.lg,
   },
