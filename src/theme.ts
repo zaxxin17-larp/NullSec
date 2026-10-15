@@ -24,6 +24,9 @@ export const colors = {
   borderStrong: '#aab3bd',
   borderFocus: '#0a9db3',
 
+  /** Faint technical grid drawn behind the page canvas. */
+  gridLine: 'rgba(10, 157, 179, 0.07)',
+
   // ctOS dark HUD panels
   panel: '#0c1116',
   panelAlt: '#141b22',
@@ -108,8 +111,8 @@ export const spacing = {
 
 export const radii = {
   none: 0,
-  sm: 4,
-  md: 8,
+  sm: 2,
+  md: 2,
   pill: 999,
 } as const;
 

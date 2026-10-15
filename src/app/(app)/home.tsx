@@ -12,6 +12,7 @@ import {
 import { ReleaseNotification } from '@/components/release-notification';
 import { ScreenContainer } from '@/components/screen-container';
 import { Card } from '@/components/ui/card';
+import { HudCorners } from '@/components/ui/hud-corners';
 import { Loader } from '@/components/ui/loader';
 import { Reveal } from '@/components/ui/reveal';
 import { StatusPill } from '@/components/ui/status-pill';
@@ -176,7 +177,11 @@ export default function HomeScreen() {
     <ScreenContainer>
       <Reveal>
         <View style={styles.hero}>
-          <Text style={styles.heroDate}>{formatFullDate(today)}</Text>
+          <HudCorners size={12} inset={6} opacity={0.5} />
+          <View style={styles.heroTop}>
+            <Text style={styles.heroDate}>{formatFullDate(today)}</Text>
+            <Text style={styles.heroCode}>SEC · CLASS-01</Text>
+          </View>
           <View style={styles.greetingRow}>
             <Text style={styles.greeting}>
               {greeting()}, {name}
@@ -383,13 +388,26 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderTopColor: colors.cyan,
     padding: spacing.xl,
+    overflow: 'hidden',
+  },
+  heroTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  heroCode: {
+    color: colors.cyanDim,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
   },
   heroDate: {
     color: colors.inkDim,
     fontFamily: fonts.mono,
     fontSize: fontSizes.xs,
     letterSpacing: 2,
-    marginBottom: spacing.sm,
   },
   greetingRow: {
     flexDirection: 'row',

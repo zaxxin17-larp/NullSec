@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { HudCorners } from '@/components/ui/hud-corners';
 import { Reveal } from '@/components/ui/reveal';
 import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 
@@ -33,13 +34,19 @@ export function Card({
         {title || subtitle || headerAccessory ? (
           <View style={styles.header}>
             <View style={styles.headerText}>
-              {title ? <Text style={styles.title}>{title}</Text> : null}
+              {title ? (
+                <View style={styles.titleRow}>
+                  <View style={styles.titleMark} />
+                  <Text style={styles.title}>{title}</Text>
+                </View>
+              ) : null}
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             </View>
             {headerAccessory}
           </View>
         ) : null}
         <View style={[styles.body, bodyStyle]}>{children}</View>
+        <HudCorners size={11} inset={-1} />
       </View>
     </Reveal>
   );
@@ -65,6 +72,16 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  titleMark: {
+    width: 6,
+    height: 6,
+    backgroundColor: colors.cyan,
   },
   title: {
     color: colors.cyan,

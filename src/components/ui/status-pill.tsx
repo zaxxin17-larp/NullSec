@@ -67,9 +67,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     borderWidth: 1,
-    borderRadius: radii.pill,
+    borderRadius: radii.sm,
     paddingHorizontal: spacing.md,
-    paddingVertical: 5,
+    paddingVertical: 4,
     alignSelf: 'flex-start',
   },
   pillSm: {
@@ -85,10 +85,10 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs,
   },
   label: {
-    fontFamily: fonts.sans,
+    fontFamily: fonts.mono,
     fontSize: fontSizes.xs,
-    fontWeight: '600',
-    letterSpacing: 0.3,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   labelSm: {
     fontSize: 10,
