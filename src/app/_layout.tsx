@@ -4,10 +4,17 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { LogBox } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider } from '@/context/auth-context';
 import { colors } from '@/theme';
+
+// Firestore's WebChannel streaming transport occasionally drops and logs a
+// benign, self-healing "transport errored" warning on React Native. The SDK
+// retries automatically (and we enable long-polling auto-detection in
+// firebase.ts), so keep the noise out of the dev LogBox overlay.
+LogBox.ignoreLogs([/transport errored/i]);
 
 SplashScreen.preventAutoHideAsync().catch(() => {
   // Splash may already be hidden on fast refresh — safe to ignore.
