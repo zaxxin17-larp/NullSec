@@ -1,11 +1,16 @@
 import Constants from 'expo-constants';
 import { Redirect, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 
 import { ReleaseNotification } from '@/components/release-notification';
 import { ScreenContainer } from '@/components/screen-container';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Loader } from '@/components/ui/loader';
 import { Reveal } from '@/components/ui/reveal';
@@ -34,6 +39,13 @@ import {
 
 const TWO_COLUMN_BREAKPOINT = 900;
 
+/** Brighter accents so the numbers stay legible on the dark hero panel. */
+const ON_DARK = {
+  present: '#5bd98a',
+  absent: '#ff8a8a',
+  excused: '#f7c15a',
+};
+
 function greeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';
@@ -50,7 +62,7 @@ export default function HomeScreen() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [attendanceDays, setAttendanceDays] = useState<AttendanceDay[]>([]);
-  const { items: activityItems } = useActivity();
+  const { items: activityItems, unreadCount } = useActivity();
   const [role, setRole] = useState<MemberRole>('student');
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
@@ -135,10 +147,6 @@ export default function HomeScreen() {
   }, [attendanceDays, uid]);
 
   const isAdmin = role === 'admin';
-
-  const joinedLabel = (user && user.metadata && user.metadata.creationTime)
-    ? user.metadata.creationTime.slice(0, 10)
-    : '—';
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
 
   async function handleCheckUpdates() {
@@ -162,27 +170,95 @@ export default function HomeScreen() {
     .slice(0, 4);
 
   const latestAnnouncements = announcements.slice(0, 3);
+  const unreadCountLabel = unreadCount > 9 ? '9+' : String(unreadCount);
 
   return (
     <ScreenContainer>
       <Reveal>
-        <View style={styles.header}>
-          <Text style={styles.eyebrow}>{formatFullDate(today)}</Text>
-          <Text style={styles.greeting}>
-            {greeting()}, {name}
-          </Text>
+        <View style={styles.hero}>
+          <Text style={styles.heroDate}>{formatFullDate(today)}</Text>
+          <View style={styles.greetingRow}>
+            <Text style={styles.greeting}>
+              {greeting()}, {name}
+            </Text>
+            {isAdmin ? <Text style={styles.adminTag}>ADMIN</Text> : null}
+          </View>
+
+          {todayStatus ? (
+            <View style={styles.todayRow}>
+              <Text style={styles.todayLabel}>TODAY</Text>
+              <StatusPill status={todayStatus} size="sm" />
+            </View>
+          ) : (
+            <Text style={styles.heroHint}>Attendance not marked yet today</Text>
+          )}
+
+          <View style={styles.heroDivider} />
+
+          <Text style={styles.heroSection}>Attendance · this month</Text>
+          <View style={styles.statRow}>
+            <Stat label="Present" value={summary.present} color={ON_DARK.present} />
+            <Stat label="Absent" value={summary.absent} color={ON_DARK.absent} />
+            <Stat label="Excused" value={summary.excused} color={ON_DARK.excused} />
+            <Stat label="Rate" value={`${summary.rate}%`} color={colors.cyan} />
+          </View>
         </View>
       </Reveal>
 
       <ReleaseNotification />
 
+      <Reveal delay={60} style={styles.section}>
+        <Text style={styles.sectionTitle}>Quick access</Text>
+        <View style={styles.actions}>
+          <QuickAction
+            label="ATTENDANCE"
+            meta={isAdmin ? 'Take attendance' : 'Calendar'}
+            onPress={() => router.push('/(app)/calendar')}
+            testID="home-open-calendar"
+          />
+          <QuickAction
+            label="CLASSMATES"
+            meta="Directory"
+            onPress={() => router.push('/(app)/members')}
+            testID="home-open-members"
+          />
+          <QuickAction
+            label="NOTICES"
+            meta={`${announcements.length} posted`}
+            onPress={() => router.push('/(app)/announcements')}
+            testID="home-open-announcements"
+          />
+          <QuickAction
+            label="MESSAGES"
+            meta="Class chat"
+            onPress={() => router.push('/(app)/messages')}
+            testID="home-open-messages"
+          />
+          <QuickAction
+            label="ALERTS"
+            meta={unreadCount > 0 ? `${unreadCountLabel} new` : 'All caught up'}
+            onPress={() => router.push('/(app)/notifications')}
+            testID="home-open-notifications"
+          />
+        </View>
+      </Reveal>
+
       <View style={[styles.grid, twoColumn && styles.gridWide]}>
         <Card
           title="Notices"
-          subtitle="Class announcements"
+          subtitle="Latest announcements"
           style={[styles.cell, twoColumn && styles.cellHalf]}
-          headerAccessory={<Text style={styles.count}>{announcements.length}</Text>}
-          delay={0}
+          headerAccessory={
+            <Pressable
+              onPress={() => router.push('/(app)/announcements')}
+              accessibilityRole="button"
+              hitSlop={8}
+              testID="home-view-all-notices"
+            >
+              <Text style={styles.cardLink}>VIEW ALL</Text>
+            </Pressable>
+          }
+          delay={120}
         >
           {latestAnnouncements.length === 0 ? (
             <Text style={styles.muted}>No announcements yet.</Text>
@@ -202,66 +278,19 @@ export default function HomeScreen() {
               ))}
             </View>
           )}
-          <Button
-            label="View all"
-            variant="secondary"
-            onPress={() => router.push('/(app)/announcements')}
-            style={styles.cardAction}
-            testID="home-open-announcements"
-          />
-        </Card>
-
-        <Card
-          title="Today"
-          subtitle="Your attendance"
-          style={[styles.cell, twoColumn && styles.cellHalf]}
-          headerAccessory={
-            todayStatus ? <StatusPill status={todayStatus} size="sm" /> : null
-          }
-          delay={60}
-        >
-          <Text style={styles.muted}>
-            {todayStatus
-              ? `You are marked ${todayStatus} today.`
-              : 'Your attendance has not been taken yet.'}
-          </Text>
-          <Button
-            label={isAdmin ? 'Take attendance' : 'Open calendar'}
-            variant="secondary"
-            onPress={() => router.push('/(app)/calendar')}
-            style={styles.cardAction}
-            testID="home-open-calendar"
-          />
-        </Card>
-
-        <Card
-          title="This month"
-          subtitle="Your attendance record"
-          style={[styles.cell, twoColumn && styles.cellHalf]}
-          headerAccessory={<Text style={styles.rate}>{summary.rate}%</Text>}
-        >
-          {summary.total === 0 ? (
-            <Text style={styles.muted}>No attendance marked yet this month.</Text>
-          ) : (
-            <View style={styles.stats}>
-              <Stat label="Present" value={summary.present} color={colors.present} />
-              <Stat label="Absent" value={summary.absent} color={colors.absent} />
-              <Stat label="Excused" value={summary.excused} color={colors.excused} />
-              <Stat label="Marked" value={summary.total} color={colors.textSecondary} />
-            </View>
-          )}
         </Card>
 
         <Card
           title="Upcoming"
-          subtitle="Scheduled class events"
+          subtitle="Next on the calendar"
           style={[styles.cell, twoColumn && styles.cellHalf]}
-          headerAccessory={<Text style={styles.count}>{events.length}</Text>}
+          headerAccessory={<Text style={styles.count}>{upcoming.length}</Text>}
+          delay={180}
         >
           {loadingEvents ? (
             <Loader compact />
           ) : upcoming.length === 0 ? (
-            <Text style={styles.muted}>No upcoming events scheduled.</Text>
+            <Text style={styles.muted}>Nothing scheduled right now.</Text>
           ) : (
             <View style={styles.list}>
               {upcoming.map((event) => (
@@ -273,90 +302,32 @@ export default function HomeScreen() {
                     <Text style={styles.eventTitle} numberOfLines={1}>
                       {event.title}
                     </Text>
-                    <Text style={styles.eventMeta}>
-                      {formatDateLabel(event.date)}
-                    </Text>
+                    <Text style={styles.eventMeta}>{formatDateLabel(event.date)}</Text>
                   </View>
                 </View>
               ))}
             </View>
           )}
         </Card>
-
-        <Card
-          title="My profile"
-          subtitle="Your class identity"
-          style={[styles.cell, twoColumn && styles.cellHalf]}
-          delay={120}
-        >
-          <Text style={styles.profileName}>{name}</Text>
-          <Text style={styles.muted}>{user?.email ?? ''}</Text>
-          <View style={styles.metaList}>
-            <Text style={styles.meta}>Member since {joinedLabel}</Text>
-            <Text style={styles.meta} numberOfLines={1}>
-              ID {user?.uid ?? ''}
-            </Text>
-          </View>
-        </Card>
-
-        <Card
-          title="Module status"
-          subtitle="What's online"
-          style={[styles.cell, twoColumn && styles.cellHalf]}
-          delay={180}
-        >
-          <View style={styles.moduleList}>
-            <ModuleRow
-              label="Attendance calendar"
-              online
-              onPress={() => router.push('/(app)/calendar')}
-            />
-            <ModuleRow
-              label="Classmates directory"
-              online
-              onPress={() => router.push('/(app)/members')}
-            />
-            <ModuleRow
-              label="Announcements"
-              online
-              onPress={() => router.push('/(app)/announcements')}
-            />
-            <ModuleRow
-              label="Messages"
-              online
-              onPress={() => router.push('/(app)/messages')}
-            />
-            <ModuleRow
-              label="Notifications"
-              online
-              onPress={() => router.push('/(app)/notifications')}
-            />
-          </View>
-        </Card>
-
-        <Card
-          title="App"
-          subtitle={`NullSec client · v${appVersion}`}
-          style={[styles.cell, twoColumn && styles.cellHalf]}
-          delay={240}
-        >
-          <Text style={styles.muted}>
-            Installed builds can receive over-the-air updates.
-          </Text>
-          {updateMessage ? (
-            <Text style={styles.updateMessage}>{updateMessage}</Text>
-          ) : null}
-          <Button
-            label="Check for updates"
-            variant="secondary"
-            onPress={handleCheckUpdates}
-            loading={checkingUpdate}
-            disabled={checkingUpdate}
-            style={styles.cardAction}
-            testID="home-check-updates"
-          />
-        </Card>
       </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerVersion}>NULLSEC CLIENT · v{appVersion}</Text>
+        <Pressable
+          onPress={handleCheckUpdates}
+          disabled={checkingUpdate}
+          accessibilityRole="button"
+          hitSlop={8}
+          testID="home-check-updates"
+        >
+          <Text style={styles.footerLink}>
+            {checkingUpdate ? 'Checking…' : 'Check for updates'}
+          </Text>
+        </Pressable>
+      </View>
+      {updateMessage ? (
+        <Text style={styles.footerMessage}>{updateMessage}</Text>
+      ) : null}
     </ScreenContainer>
   );
 }
@@ -367,7 +338,7 @@ function Stat({
   color,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   color: string;
 }) {
   return (
@@ -378,59 +349,166 @@ function Stat({
   );
 }
 
-function ModuleRow({
+function QuickAction({
   label,
-  online,
+  meta,
   onPress,
+  testID,
 }: {
   label: string;
-  online: boolean;
-  onPress?: () => void;
+  meta: string;
+  onPress: () => void;
+  testID: string;
 }) {
-  const content = (
-    <>
-      <View style={[styles.moduleDot, online ? styles.dotOn : styles.dotOff]} />
-      <Text style={styles.moduleLabel}>{label}</Text>
-      <Text style={[styles.moduleState, online ? styles.stateOn : styles.stateOff]}>
-        {online ? 'Online' : 'Planned'}
-      </Text>
-      {onPress ? <Text style={styles.moduleArrow}>{'\u203a'}</Text> : null}
-    </>
-  );
-
-  if (!onPress) {
-    return <View style={styles.moduleRow}>{content}</View>;
-  }
-
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={styles.moduleRow}
-      testID={`module-${label.toLowerCase().replace(/\s+/g, '-')}`}
+      testID={testID}
+      style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}
     >
-      {content}
+      <Text style={styles.actionLabel}>{label}</Text>
+      <Text style={styles.actionMeta} numberOfLines={1}>
+        {meta}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    marginBottom: spacing.xl,
+  hero: {
+    backgroundColor: colors.panel,
+    borderRadius: radii.md,
+    borderTopWidth: 2,
+    borderTopColor: colors.cyan,
+    padding: spacing.xl,
   },
-  eyebrow: {
-    color: colors.textMuted,
+  heroDate: {
+    color: colors.inkDim,
     fontFamily: fonts.mono,
     fontSize: fontSizes.xs,
-    letterSpacing: 1,
-    marginBottom: spacing.xs,
+    letterSpacing: 2,
+    marginBottom: spacing.sm,
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   greeting: {
-    color: colors.text,
+    color: colors.ink,
     fontFamily: fonts.mono,
     fontSize: fontSizes.xxl,
     letterSpacing: 0.5,
+  },
+  adminTag: {
+    color: colors.panel,
+    backgroundColor: colors.cyan,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  todayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  todayLabel: {
+    color: colors.inkDim,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+  },
+  heroHint: {
+    color: colors.inkDim,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
+    letterSpacing: 0.5,
+    marginTop: spacing.md,
+  },
+  heroDivider: {
+    height: 1,
+    backgroundColor: colors.panelLine,
+    marginVertical: spacing.lg,
+  },
+  heroSection: {
+    color: colors.inkDim,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: spacing.md,
+  },
+  statRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.lg,
+  },
+  stat: {
+    flexGrow: 1,
+    minWidth: 72,
+  },
+  statValue: {
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xl,
+  },
+  statLabel: {
+    color: colors.inkDim,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  section: {
+    marginTop: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    color: colors.textMuted,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: spacing.md,
+  },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  action: {
+    flexGrow: 1,
+    flexBasis: 150,
+    minWidth: 140,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderTopWidth: 2,
+    borderTopColor: colors.accent,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: 2,
+  },
+  actionPressed: {
+    backgroundColor: colors.surfaceAlt,
+    borderColor: colors.borderStrong,
+  },
+  actionLabel: {
+    color: colors.text,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.sm,
+    letterSpacing: 1,
+  },
+  actionMeta: {
+    color: colors.textMuted,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
   },
   grid: {
     gap: spacing.lg,
@@ -448,12 +526,16 @@ const styles = StyleSheet.create({
     minWidth: 320,
     maxWidth: '49%',
   },
-  toggleWrap: {
-    marginTop: spacing.lg,
+  cardLink: {
+    color: colors.accentStrong,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
+    letterSpacing: 1,
   },
-  cardAction: {
-    alignSelf: 'flex-start',
-    marginTop: spacing.lg,
+  count: {
+    color: colors.inkDim,
+    fontFamily: fonts.mono,
+    fontSize: fontSizes.xs,
   },
   muted: {
     color: colors.textSecondary,
@@ -461,43 +543,8 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.sm,
     lineHeight: 20,
   },
-  error: {
-    color: colors.danger,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.xs,
-    marginTop: spacing.sm,
-  },
-  rate: {
-    color: colors.accentStrong,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.sm,
-  },
-  count: {
-    color: colors.accentStrong,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-  },
-  stats: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xl,
-  },
-  stat: {
-    minWidth: 60,
-  },
-  statValue: {
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xl,
-  },
-  statLabel: {
-    color: colors.textMuted,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-    letterSpacing: 0.5,
-    marginTop: spacing.xs,
-  },
   list: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   eventRow: {
     flexDirection: 'row',
@@ -544,66 +591,33 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.xs,
     marginTop: 1,
   },
-  profileName: {
-    color: colors.text,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.lg,
-  },
-  metaList: {
-    marginTop: spacing.md,
-    gap: spacing.xs,
-  },
-  meta: {
-    color: colors.textMuted,
-    fontFamily: fonts.mono,
-    fontSize: fontSizes.xs,
-  },
-  moduleList: {
-    gap: spacing.sm,
-  },
-  moduleRow: {
+  footer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: spacing.sm,
+    marginTop: spacing.xl,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderDim,
   },
-  moduleDot: {
-    width: 8,
-    height: 8,
-    borderRadius: radii.pill,
+  footerVersion: {
+    color: colors.textMuted,
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 1.5,
   },
-  dotOn: {
-    backgroundColor: colors.present,
-  },
-  dotOff: {
-    backgroundColor: colors.borderStrong,
-  },
-  moduleLabel: {
-    flex: 1,
-    color: colors.text,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.sm,
-  },
-  moduleState: {
+  footerLink: {
+    color: colors.accentStrong,
     fontFamily: fonts.mono,
     fontSize: fontSizes.xs,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
-  stateOn: {
-    color: colors.present,
-  },
-  stateOff: {
+  footerMessage: {
     color: colors.textMuted,
-  },
-  moduleArrow: {
-    color: colors.accentStrong,
     fontFamily: fonts.mono,
-    fontSize: fontSizes.md,
-    marginLeft: spacing.sm,
-  },
-  updateMessage: {
-    color: colors.accentStrong,
-    fontFamily: fonts.sans,
-    fontSize: fontSizes.sm,
-    marginTop: spacing.md,
+    fontSize: fontSizes.xs,
+    marginTop: spacing.sm,
   },
 });
