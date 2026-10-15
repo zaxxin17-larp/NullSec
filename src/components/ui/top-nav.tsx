@@ -14,11 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BlinkingCursor } from '@/components/blinking-cursor';
 import { Avatar } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useActivity } from '@/context/activity-context';
 import { useAuth } from '@/context/auth-context';
-import { logOut } from '@/services/auth';
 import { colors, fontSizes, fonts, radii, spacing } from '@/theme';
 
 const NAV_ITEMS = [
@@ -28,9 +25,10 @@ const NAV_ITEMS = [
   { label: 'NOTICES', href: '/(app)/announcements', match: '/announcements' },
   { label: 'MESSAGES', href: '/(app)/messages', match: '/messages' },
   { label: 'ALERTS', href: '/(app)/notifications', match: '/notifications' },
+  { label: 'SETTINGS', href: '/(app)/settings', match: '/settings' },
 ] as const;
 
-const WIDE_BREAKPOINT = 820;
+const WIDE_BREAKPOINT = 1080;
 const BAR_HEIGHT = 58;
 
 function formatClock(date: Date): string {
@@ -138,8 +136,6 @@ export function TopNav() {
   const showClock = width >= 520;
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [confirmSignOut, setConfirmSignOut] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
   const [clock, setClock] = useState(() => formatClock(new Date()));
 
   const menuAnim = useMemo(() => new Animated.Value(0), []);
@@ -167,16 +163,6 @@ export function TopNav() {
   function navigate(href: (typeof NAV_ITEMS)[number]['href']) {
     setMenuOpen(false);
     router.push(href);
-  }
-
-  async function handleSignOut() {
-    setSigningOut(true);
-    try {
-      await logOut();
-    } finally {
-      setSigningOut(false);
-      setConfirmSignOut(false);
-    }
   }
 
   const menuTranslate = menuAnim.interpolate({
@@ -249,15 +235,7 @@ export function TopNav() {
 
           <Avatar name={name} size={30} testID="nav-avatar" />
 
-          {isWide ? (
-            <Button
-              label="SIGN OUT"
-              variant="secondary"
-              size="sm"
-              onPress={() => setConfirmSignOut(true)}
-              testID="nav-signout"
-            />
-          ) : (
+          {!isWide ? (
             <Pressable
               onPress={() => setMenuOpen((prev) => !prev)}
               accessibilityRole="button"
@@ -269,7 +247,7 @@ export function TopNav() {
             >
               <MenuGlyph open={menuOpen} />
             </Pressable>
-          )}
+          ) : null}
         </View>
       </View>
 
@@ -328,35 +306,9 @@ export function TopNav() {
                 </Pressable>
               );
             })}
-            <View style={styles.mobileDivider} />
-            <Pressable
-              onPress={() => {
-                setMenuOpen(false);
-                setConfirmSignOut(true);
-              }}
-              accessibilityRole="button"
-              style={styles.mobileItem}
-              testID="nav-mobile-signout"
-            >
-              <View style={styles.mobileBullet} />
-              <Text style={[styles.mobileLabel, styles.mobileSignOut]}>SIGN OUT</Text>
-            </Pressable>
           </Animated.View>
         </View>
       </Modal>
-
-
-      <ConfirmDialog
-        visible={confirmSignOut}
-        title="Sign out"
-        message="End this session and return to the sign-in screen?"
-        confirmLabel="Sign out"
-        destructive
-        loading={signingOut}
-        onConfirm={handleSignOut}
-        onCancel={() => setConfirmSignOut(false)}
-        testID="confirm-signout"
-      />
     </View>
   );
 }
@@ -603,14 +555,5 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     overflow: 'hidden',
     borderRadius: radii.sm,
-  },
-  mobileDivider: {
-    height: 1,
-    backgroundColor: colors.panelLine,
-    marginVertical: spacing.sm,
-    marginHorizontal: spacing.lg,
-  },
-  mobileSignOut: {
-    color: colors.orange,
   },
 });

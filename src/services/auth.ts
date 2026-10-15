@@ -8,7 +8,7 @@ import {
   type Unsubscribe,
   type User,
 } from 'firebase/auth';
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 
 import { auth, db } from '@/firebase';
 
@@ -78,4 +78,25 @@ export function subscribeToAuth(
 /** Current signed-in user (synchronously, may be null before first callback). */
 export function getCurrentUser(): User | null {
   return auth.currentUser;
+}
+
+/**
+ * Change the caller's display name: updates the Firebase Auth profile and the
+ * mirroring `members/{uid}` (public directory) and `users/{uid}` documents. The
+ * directory update is required; the private profile mirror is best-effort.
+ */
+export async function updateUsername(
+  uid: string,
+  username: string,
+): Promise<void> {
+  const current = auth.currentUser;
+  if (current) {
+    await updateProfile(current, { displayName: username });
+  }
+  await updateDoc(doc(db, 'members', uid), { uid, username });
+  try {
+    await updateDoc(doc(db, 'users', uid), { username });
+  } catch {
+    // The private profile mirror may not exist — ignore.
+  }
 }
